@@ -8,6 +8,8 @@ flask = "*"
 markupsafe = "*"
 flask-session = "*"
 flask-login = "*"
+flask-sqlalchemy = "*"
+psycopg2 = "*"
 
 [dev-packages]
 
