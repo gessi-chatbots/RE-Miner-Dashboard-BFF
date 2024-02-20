@@ -18,6 +18,13 @@ migrate = Migrate(app, db)
 from app.users_api.routes import users_api_bp
 app.register_blueprint(users_api_bp, url_prefix='/users_api')
 
+from app.reviews_api.routes import reviews_api_bp
+app.register_blueprint(reviews_api_bp, url_prefix='/reviews_api')
+
+from app.applications_api.routes import applications_api_bp
+app.register_blueprint(applications_api_bp, url_prefix='/applications_api')
+
+
 from app.users_api.models import User
 with app.app_context():
     db.create_all()
