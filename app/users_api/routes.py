@@ -22,7 +22,8 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         return make_response(jsonify({'message': 'user created'}), 201)
-    except: 
+    except Exception as ex:
+        users_api_logger.error(f"[{datetime.now()}]: Error registrating user {ex}") 
         return make_response(jsonify({'message': 'error creating user'}), 500)
 
 @users_api_bp.get('/users/<int:id>')
