@@ -1,10 +1,17 @@
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+from app import db
 
-database = SQLAlchemy()
 
-class User(database.Model, UserMixin):
-    id = database.Column(database.Integer, primary_key=True)
-    name = database.Column(database.String(50), nullable=False)
-    family_name = database.Column(database.String(50), nullable=False)
-    email = database.Column(database.String(50), unique=True, nullable=False)
+class User(db.Model, UserMixin):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    family_name = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(50), unique=True, nullable=False)
+
+    def json(self):
+        return {'id': self.id,
+                'name': self.name, 
+                'family_name': self.family_name,
+                'email': self.email}
+

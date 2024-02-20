@@ -10,6 +10,8 @@ flask-session = "*"
 flask-login = "*"
 flask-sqlalchemy = "*"
 psycopg2 = "*"
+flask-migrate = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 
