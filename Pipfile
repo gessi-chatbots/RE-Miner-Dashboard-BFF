@@ -13,6 +13,7 @@ psycopg2 = ">=2.9,<3.0"
 flask-migrate = ">=3.0,<4.0"
 psycopg2-binary = ">=2.9,<3.0"
 werkzeug = ">=2.0,<3.0"
+flask-jwt-extended = "*"
 
 [dev-packages]
 

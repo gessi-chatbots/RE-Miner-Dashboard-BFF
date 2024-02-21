@@ -1,7 +1,7 @@
 from flask import request, jsonify, make_response
 from . import users_api_bp, users_api_logger, UserIntegrityException, UserNotFound, UnknownException
 from datetime import datetime
-from .service import create_user, get_user, update_user, delete_user
+from .userService import create_user, get_user, update_user, delete_user
 
 @users_api_bp.errorhandler(UserNotFound)
 def handle_user_not_found(exception):

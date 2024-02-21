@@ -1,5 +1,6 @@
 import secrets
 from flask import Flask
+from datetime import timedelta
 import os
 
 
@@ -10,6 +11,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URL', 'postgresql://p
 print(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Token Management
+app.config["JWT_COOKIE_SECURE"] = True
+app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+app.config["JWT_SECRET_KEY"] = secrets.token_hex(16)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+from flask_jwt_extended import JWTManager
+jwt = JWTManager(app)
 
 # DB integration
 from flask_sqlalchemy import SQLAlchemy
