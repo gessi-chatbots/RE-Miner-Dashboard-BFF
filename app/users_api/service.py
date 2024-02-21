@@ -10,7 +10,7 @@ def create_user(form):
             'name': form.get('name'),
             'family_name': form.get('family_name'),
             'email': form.get('email'),
-            'password': form.get('password')  # Assuming 'password' is in the form data
+            'password': form.get('password')
         }
         new_user = User(**user_data)
         new_user.password = user_data['password']
