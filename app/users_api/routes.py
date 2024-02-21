@@ -24,14 +24,20 @@ def ping():
 @users_api_bp.route("/users", methods=['POST'])
 def create():
     users_api_logger.info(f"[{datetime.now()}]: Register User")
-    user_data = create_user(request)
-    return make_response(jsonify({'user_data': user_data }), 201)
+    if request.form is None:
+        return make_response(jsonify({'message': 'No form data has been provided' }), 400)
+    if request.form.get('password') is None: 
+        return make_response(jsonify({'message': 'No password has been provided' }), 400)
+    if request.form.get('email') is None: 
+        return make_response(jsonify({'message': 'No email has been provided' }), 400)
+    user = create_user(request.form)
+    return make_response(jsonify({'user_data': user }), 201)
 
 @users_api_bp.route('/users/user/<string:id>', methods=['GET'])
 def get(id):
     users_api_logger.info(f"[{datetime.now()}]: Get User {id}") 
     user = get_user(id)
-    return make_response(jsonify({'user': user.json()}), 200)
+    return make_response(jsonify({'user': user}), 200)
 
 @users_api_bp.route('/users/user/<string:id>', methods=['PUT', 'POST'])
 def update(id):
@@ -39,7 +45,7 @@ def update(id):
     if request.form is None:
         return make_response(jsonify({'message': 'No User data provided'}), 400)
     user = update_user(id, request.form)
-    return make_response(jsonify({'user_data': user.json()}), 200)
+    return make_response(jsonify({'user_data': user}), 200)
 
 @users_api_bp.route('/users/user/<string:id>', methods=['DELETE'])
 def delete(id):
