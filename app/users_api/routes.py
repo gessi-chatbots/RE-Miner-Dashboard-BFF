@@ -1,65 +1,55 @@
-from flask import request, jsonify, make_response
-from . import users_api_bp, users_api_logger
-from .models import User, db
+from flask import request, jsonify, make_response, abort
+from . import users_api_bp, users_api_logger, UserNotFound, UnknownException
 from datetime import datetime
+from .service import create_user, get_user, update_user, delete_user
 
+@users_api_bp.errorhandler(UserNotFound)
+def handle_user_not_found(exception):
+    users_api_logger.info(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+@users_api_bp.errorhandler(UnknownException)
+def handle_user_not_found(exception):
+    users_api_logger.info(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
 
 @users_api_bp.route('/ping', methods=['GET'])
 def ping():
     users_api_logger.info(f"[{datetime.now()}]: Ping Users API") 
     return make_response(jsonify({'message': 'Ping Users API ok'}), 200)
 
-@users_api_bp.post("/users")
+@users_api_bp.route("/users", methods=['POST'])
 def register():
-    users_api_logger.info(f"[{datetime.now()}]: Register User") 
+    users_api_logger.info(f"[{datetime.now()}]: Register User")
     try: 
-        name = request.form.get('name')
-        family_name = request.form.get('family_name')
-        email = request.form.get('email')
-        new_user = User(name=name, 
-                        family_name=family_name, 
-                        email=email) 
-        db.session.add(new_user)
-        db.session.commit()
+        create_user(request)
         return make_response(jsonify({'message': 'user created'}), 201)
     except Exception as ex:
-        users_api_logger.error(f"[{datetime.now()}]: Error registrating user {ex}") 
-        return make_response(jsonify({'message': 'error creating user'}), 500)
+        users_api_logger.error(f"[{datetime.now()}]: Exception -> {ex}") 
+        abort(500)
 
-@users_api_bp.get('/users/<int:id>')
-def get_user(id):
+@users_api_bp.route('/users/user/<int:id>', methods=['GET'])
+def read_user(id):
     users_api_logger.info(f"[{datetime.now()}]: Get User {id}") 
-    try:
-        user = User.query.filter_by(id=id).first()
-        if user:
-            return make_response(jsonify({'user': user.json()}), 200)
-        return make_response(jsonify({'message': 'user not found'}), 404)
-    except:
-        return make_response(jsonify({'message': 'error getting user'}), 500)
+    user = get_user(id)
+    return make_response(jsonify({'user': user.json()}), 200)
 
-@users_api_bp.route('/users/<int:id>', methods=['PUT'])
+
+@users_api_bp.route('/users/user/<int:id>', methods=['PUT', 'POST'])
 def update_user(id):
     users_api_logger.info(f"[{datetime.now()}]: Update User {id}") 
     try:
-        user = User.query.filter_by(id=id).first()
-        if user:
-            user.name = request.form.get('name')
-            user.family_name = request.form.get('family_name')
-            db.session.commit()
-            return make_response(jsonify({'message': 'user updated'}), 200)
-        return make_response(jsonify({'message': 'user not found'}), 404)
-    except:
-        return make_response(jsonify({'message': 'error updating user'}), 500)
+        update_user(id=id, request=request.form)
+    except Exception as ex:
+        users_api_logger.error(f"[{datetime.now()}]: Exception -> {ex}") 
+        abort(500)
 
-@users_api_bp.route('/users/<int:id>', methods=['DELETE'])
+@users_api_bp.route('/users/user/<int:id>', methods=['DELETE'])
 def delete_user(id):
     users_api_logger.info(f"[{datetime.now()}]: Delete User {id}") 
     try:
-        user = User.query.filter_by(id=id).first()
-        if user:
-            db.session.delete(user)
-            db.session.commit()
-            return make_response(jsonify({'message': 'user deleted'}), 200)
-        return make_response(jsonify({'message': 'user not found'}), 404)
-    except:
-        return make_response(jsonify({'message': 'error deleting user'}), 500)
+        delete_user(id)
+        return make_response(jsonify({'message': 'user deleted'}), 200)
+    except Exception as ex:
+        users_api_logger.error(f"[{datetime.now()}]: Exception -> {ex}") 
+        abort(500)

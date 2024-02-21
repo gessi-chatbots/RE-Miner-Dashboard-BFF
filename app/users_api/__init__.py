@@ -8,4 +8,12 @@ users_api_logger = logging.getLogger('users_api')
 users_api_logger.setLevel(logging.DEBUG)
 users_api_logger.addHandler(logging.FileHandler('logs/users_api.log'))
 
+class UnknownException(Exception):
+    code = 500
+    message = "Unexpected server error"
+
+class UserNotFound(Exception):
+    code = 404
+    message = "User not found"
+
 from . import routes, models

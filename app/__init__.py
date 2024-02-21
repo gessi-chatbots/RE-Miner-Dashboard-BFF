@@ -13,6 +13,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy(app)
 
+from app.exceptions import UnknownException, UserNotFound
+
 # APIs blueprints registration
 from app.users_api.routes import users_api_bp
 app.register_blueprint(users_api_bp, url_prefix='/users_api')
@@ -22,6 +24,7 @@ app.register_blueprint(reviews_api_bp, url_prefix='/reviews_api')
 
 from app.applications_api.routes import applications_api_bp
 app.register_blueprint(applications_api_bp, url_prefix='/applications_api')
+
 
 
 # Schema generation 

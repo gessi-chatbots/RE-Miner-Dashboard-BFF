@@ -12,6 +12,7 @@ flask-sqlalchemy = "*"
 psycopg2 = "*"
 flask-migrate = "*"
 psycopg2-binary = "*"
+werkzeug = "*"
 
 [dev-packages]
 
