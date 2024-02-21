@@ -13,6 +13,7 @@ psycopg2 = "*"
 flask-migrate = "*"
 psycopg2-binary = "*"
 werkzeug = "*"
+flask-bcrypt = "*"
 
 [dev-packages]
 
