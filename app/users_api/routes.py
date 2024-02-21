@@ -6,8 +6,8 @@ from datetime import datetime
 
 @users_api_bp.route('/ping', methods=['GET'])
 def ping():
-    users_api_logger.info(f"[{datetime.now()}]: Ping API Users") 
-    return make_response(jsonify({'message': 'ping users api ok'}), 200)
+    users_api_logger.info(f"[{datetime.now()}]: Ping Users API") 
+    return make_response(jsonify({'message': 'Ping Users API ok'}), 200)
 
 @users_api_bp.post("/users")
 def register():
