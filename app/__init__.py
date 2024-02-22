@@ -1,5 +1,6 @@
 import secrets
-from flask import Flask, Blueprint
+from flask import Flask
+from flask_jwt_extended import JWTManager
 from datetime import timedelta
 import os
 
@@ -14,10 +15,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Token Management
 app.config["JWT_COOKIE_SECURE"] = True
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
-app.config["JWT_SECRET_KEY"] = secrets.token_hex(16)
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config['JWT_ACCESS_COOKIE_PATH'] = '/api/'
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
-from flask_jwt_extended import JWTManager
+app.config['JWT_REFRESH_COOKIE_PATH'] = '/token/refresh'
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config["JWT_SECRET_KEY"] = secrets.token_hex(16)
 jwt = JWTManager(app)
 
 # DB integration
@@ -26,16 +29,16 @@ db = SQLAlchemy(app)
 
 # APIs blueprints registration
 from app.users_api.routes import users_api_bp
-app.register_blueprint(users_api_bp, url_prefix='/users_api')
+app.register_blueprint(users_api_bp, url_prefix='/api/users')
 
 from app.reviews_api.routes import reviews_api_bp
-app.register_blueprint(reviews_api_bp, url_prefix='/reviews_api')
+app.register_blueprint(reviews_api_bp, url_prefix='/api/reviews')
 
 from app.applications_api.routes import applications_api_bp
-app.register_blueprint(applications_api_bp, url_prefix='/applications_api')
+app.register_blueprint(applications_api_bp, url_prefix='/api/applications')
 
 from app.authentication_api.routes import authentication_api_bp
-app.register_blueprint(authentication_api_bp)
+app.register_blueprint(authentication_api_bp, url_prefix='/api/')
 
 # Schema generation 
 # (it could be done via migration, but as we have a simple schema we hardcode it)

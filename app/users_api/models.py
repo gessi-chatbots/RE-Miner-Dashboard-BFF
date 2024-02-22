@@ -21,7 +21,7 @@ class User(db.Model, UserMixin):
         backref=db.backref('users', lazy='dynamic'),
         lazy='dynamic'
     )
-
+    
     def json(self):
         return {
             'id': self.id,

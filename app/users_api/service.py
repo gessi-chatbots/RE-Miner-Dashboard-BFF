@@ -3,6 +3,7 @@ from .models import User, db
 import uuid
 from sqlalchemy.exc import IntegrityError
 
+
 def create_user(form):
     try:
         user_data = {
@@ -20,16 +21,20 @@ def create_user(form):
         db.session.rollback()
         raise UserIntegrityException
 
-def get_user(id):
-    user = User.query.get(id)
+def get_user_by_id(id):
+    user = User.query.filter_by(id=id).one_or_none()
     if user is None: 
         raise UserNotFound()
-    return user.json()
+    return user
 
-def update_user(id, form):
-    user = User.query.get(id)
-    if user is None:
-        raise UserNotFound
+def get_user_by_email(email):
+    user = User.query.filter_by(email=email).one_or_none()
+    if user is None: 
+        raise UserNotFound()
+    return user
+
+def update_user(email, form):
+    user = get_user_by_email(email)
     try:
         user.name = form.get('name', user.name)
         user.family_name = form.get('family_name', user.family_name)
@@ -38,10 +43,8 @@ def update_user(id, form):
     except Exception as e:
         db.session.rollback()
 
-def delete_user(id):
-    user = User.query.get(id)
-    if user is None:
-        raise UserNotFound
+def delete_user(email):
+    user = get_user_by_email(email)
     try:
         db.session.delete(user)
         db.session.commit()

@@ -15,7 +15,7 @@ def delete_application():
     applications_api_logger.info(f"[{datetime.now()}]: Ping Applications API")
     return make_response(jsonify(responses['ping']), 200)
 
-@applications_api_bp.post('/applications')
+@applications_api_bp.post('/')
 def create_applications():
     applications_api_logger.info(f"[{datetime.now()}]: Create Applications request")
     user_id = request.args.get('user_id')
