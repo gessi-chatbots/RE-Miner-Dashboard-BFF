@@ -1,6 +1,5 @@
 from app import db
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
 
 user_application_association = db.Table(
     'user_applications',
@@ -16,17 +15,6 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
 
-    @property
-    def password(self):
-        raise AttributeError('password not readable')
-
-    @password.setter
-    def password(self, plaintext_password):
-        self.password_hash = generate_password_hash(plaintext_password)
-
-    def check_password(self, plaintext_password):
-        return check_password_hash(self.password_hash, plaintext_password)
-    
     applications = db.relationship(
         'Application',
         secondary=user_application_association,

@@ -10,10 +10,9 @@ def create_user(form):
             'name': form.get('name'),
             'family_name': form.get('family_name'),
             'email': form.get('email'),
-            'password': form.get('password')
+            'password_hash': form.get('password')
         }
         new_user = User(**user_data)
-        new_user.password = user_data['password']
         db.session.add(new_user)
         db.session.commit()
         return new_user.json()
@@ -39,7 +38,6 @@ def update_user(id, form):
     except Exception as e:
         db.session.rollback()
 
-
 def delete_user(id):
     user = User.query.get(id)
     if user is None:
@@ -47,5 +45,14 @@ def delete_user(id):
     try:
         db.session.delete(user)
         db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+
+def check_valid_user(email, password):
+    print(email)
+    print(password)
+    try:
+        user = User.query.filter(User.email == email, User.password_hash == password).one()
+        return user is not None
     except Exception as e:
         db.session.rollback()

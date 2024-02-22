@@ -1,9 +1,4 @@
-from app import app, db
-
-def create_tables():
-    with app.app_context():
-        db.create_all()
+from app import app
 
 if __name__ == '__main__':
-    create_tables()
     app.run(debug=True)
