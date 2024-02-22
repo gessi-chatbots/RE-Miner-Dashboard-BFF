@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  dashboard-db:
+    container_name: dashboard_db
+    image: postgres:12
+    environment:
+      - POSTGRES_PASSWORD=pg_strong_password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=dashboard_db
+    volumes:
+      - pgdata:/var/lib/postgresql/12/data
+    ports:
+      - "5433:5432"
+    networks:
+      - re_miner_network
+
+  re-miner-dashboard-bff:
+    container_name: dashboard_bff
+    build:
+      context: ./RE-Miner-Dashboard-BFF
+    environment:
+      - SERVICE_PORT=3003
+      - DB_URL=postgresql://postgres:pg_strong_password@dashboard-db:5432/dashboard_db
+    ports:
+      - "3003:3003"
+    networks:
+      - re_miner_network
+
+  #re-miner-hub:
+  #  container_name: re_miner_hub
+  #  build:
+  #    context: ./RE-Miner-Hub
+  #  environment:
+  #    - OPENAI_API_KEY=${OPENAI_API_KEY}
+  #    - AUTHORIZATION_KEY=${AUTHORIZATION_KEY}
+  #    - SERVICE_NAME=re-miner-hub
+  #    - SERVICE_HOST=re-miner-hub
+  #    - SERVICE_PORT=3000
+  #  ports:
+  #    - "3000:3000"
+  #  networks:
+  #    - re_miner_network
+
+volumes:
+  pgdata: {}
+
+networks:
+  re_miner_network:
+    driver: bridge
+
