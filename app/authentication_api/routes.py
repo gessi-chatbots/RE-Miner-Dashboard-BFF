@@ -3,6 +3,7 @@ from .service import generate_access_token, generate_refresh_token
 from app.users_api.service import check_valid_user
 from . import authentication_api_bp, authentication_api_logger
 from datetime import datetime
+from flask_jwt_extended import set_access_cookies, set_refresh_cookies
 
 @authentication_api_bp.route('/ping', methods=['GET'])
 def ping():
@@ -25,9 +26,7 @@ def login():
     access_token = generate_access_token(email)
     refresh_token = generate_refresh_token(email)
     
-    response_data = {
-        'access_token': access_token,
-        'refresh_token': refresh_token
-    }
-
-    return make_response(jsonify(response_data), 200)
+    resp = jsonify({'login': True})
+    set_access_cookies(resp, access_token)
+    set_refresh_cookies(resp, refresh_token)
+    return resp, 200
