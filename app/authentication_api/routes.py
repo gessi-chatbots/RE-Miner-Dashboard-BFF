@@ -48,6 +48,7 @@ def refresh_access_token():
 
 @authentication_api_bp.route('/logout', methods=['POST'])
 def logout():
+    authentication_api_logger.info(f"[{datetime.now()}]: Logout") 
     resp = jsonify({'logout': True})
     unset_jwt_cookies(resp)
     return resp, 200
