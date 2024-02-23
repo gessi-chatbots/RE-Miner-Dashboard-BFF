@@ -2,7 +2,6 @@ from . import reviews_api_bp, reviews_api_logger
 from flask import make_response, jsonify
 from flask_jwt_extended import jwt_required
 from datetime import datetime
-from ...app import jwt
 
 @reviews_api_bp.route('/ping', methods=['GET'])
 def ping():
