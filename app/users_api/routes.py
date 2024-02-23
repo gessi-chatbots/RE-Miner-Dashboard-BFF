@@ -13,7 +13,6 @@ def user_identity_lookup(user):
 def user_lookup_callback(_jwt_header, jwt_data):
     return get_user_by_email(jwt_data["sub"])
 
-
 @users_api_bp.errorhandler(UserNotFound)
 def handle_user_not_found(exception):
     users_api_logger.info(exception)
