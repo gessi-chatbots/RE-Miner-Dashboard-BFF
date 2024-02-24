@@ -2,8 +2,8 @@ from flask import request, jsonify, make_response
 from .. import jwt
 from . import users_api_bp, users_api_logger, UserIntegrityException, UserNotFound, UnknownException
 from datetime import datetime
-from .service import create_user, get_user_by_email, update_user, delete_user
-from flask_jwt_extended import jwt_required, current_user
+from .service import create_user, get_user_by_email, update_user_by_email, delete_user_by_email
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 @jwt.user_identity_loader
 def user_identity_lookup(user):
@@ -44,8 +44,12 @@ def create():
     return make_response(jsonify({'user_data': user }), 201)
 
 @users_api_bp.route('/user/<string:email>', methods=['GET'])
+@jwt_required()
 def get(email):
-    users_api_logger.info(f"[{datetime.now()}]: Get User {email}") 
+    users_api_logger.info(f"[{datetime.now()}]: Get User {email}")
+    jwt_email = get_jwt_identity()
+    if email != jwt_email:
+        return make_response(jsonify({'Unauthorized': 'Cannot retrieve data from another user'}), 401)
     user = get_user_by_email(email)
     return make_response(jsonify({'user': user.json()}), 200)
 
@@ -55,11 +59,18 @@ def update(email):
     users_api_logger.info(f"[{datetime.now()}]: Update User {id}")
     if request.form is None:
         return make_response(jsonify({'message': 'No User data provided'}), 400)
-    user = update_user(email, request.form)
+    jwt_email = get_jwt_identity()
+    if email != jwt_email:
+        return make_response(jsonify({'Unauthorized': 'Cannot update data from another user'}), 401)
+    user = update_user_by_email(email, request.form)
     return make_response(jsonify({'user_data': user}), 200)
 
-@users_api_bp.route('/user/<string:id>', methods=['DELETE'])
-def delete(id):
-    users_api_logger.info(f"[{datetime.now()}]: Delete User {id}") 
-    delete_user(id)
+@users_api_bp.route('/user/<string:email>', methods=['DELETE'])
+@jwt_required()
+def delete(email):
+    users_api_logger.info(f"[{datetime.now()}]: Delete User {email}")
+    jwt_email = get_jwt_identity()
+    if email != jwt_email:
+        return make_response(jsonify({'Unauthorized': 'Cannot update data from another user'}), 401)
+    delete_user_by_email(email)
     return make_response(jsonify({'message': 'user deleted'}), 200)

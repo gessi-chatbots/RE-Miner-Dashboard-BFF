@@ -2,6 +2,7 @@ from flask import request, jsonify, make_response, abort
 from .service import generate_access_token, generate_refresh_token
 from app.users_api.service import check_valid_user
 from . import authentication_api_bp, authentication_api_logger
+from .models import LoginForm
 from datetime import datetime
 from flask_jwt_extended import (set_access_cookies, 
                                 set_refresh_cookies, 
@@ -16,15 +17,17 @@ def ping():
 
 @authentication_api_bp.route('/login', methods=['POST'])
 def login():
-    authentication_api_logger.info(f"[{datetime.now()}]: Login User") 
-    email = request.json.get("email", None)
-    if email is None:
-        abort(401, description='No email has been provided')
-
-    password = request.json.get("password", None)
-    if password is None:
-        abort(401, description='No password has been provided')
-
+    authentication_api_logger.info(f"[{datetime.now()}]: Login User")
+    login_form = LoginForm(request.form)
+    if not login_form.validate():
+        errors = {"errors": []}
+        for field, messages in login_form.errors.items():
+            for error in messages:
+                errors["errors"].append({"field": field, "message": error})
+        return jsonify(errors), 400
+    
+    email = login_form.email.data
+    password = login_form.password.data
     if not check_valid_user(email, password):
         abort(401, description='Invalid credentials')
 

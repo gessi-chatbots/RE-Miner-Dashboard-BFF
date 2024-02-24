@@ -33,7 +33,7 @@ def get_user_by_email(email):
         raise UserNotFound()
     return user
 
-def update_user(email, form):
+def update_user_by_email(email, form):
     user = get_user_by_email(email)
     try:
         user.name = form.get('name', user.name)
@@ -43,7 +43,7 @@ def update_user(email, form):
     except Exception as e:
         db.session.rollback()
 
-def delete_user(email):
+def delete_user_by_email(email):
     user = get_user_by_email(email)
     try:
         db.session.delete(user)
