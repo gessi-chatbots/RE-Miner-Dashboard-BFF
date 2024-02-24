@@ -12,13 +12,16 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URL', 'postgresql://p
 print(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# API version
+general_api_version = 'v1'
+
 # Token Management
 app.config["JWT_COOKIE_SECURE"] = True
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
-app.config['JWT_ACCESS_COOKIE_PATH'] = '/api/'
+app.config['JWT_ACCESS_COOKIE_PATH'] = f'/api/{general_api_version}'
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
-app.config['JWT_REFRESH_COOKIE_PATH'] = '/token/refresh'
+app.config['JWT_REFRESH_COOKIE_PATH'] = f'/api/{general_api_version}/refresh'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 app.config["JWT_SECRET_KEY"] = secrets.token_hex(16)
 jwt = JWTManager(app)
@@ -27,8 +30,7 @@ jwt = JWTManager(app)
 from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy(app)
 
-# API version
-general_api_version = 'v1'
+# APIs Versions
 users_api_version = 'v1'
 applications_api_version = 'v1'
 reviews_api_version = 'v1'

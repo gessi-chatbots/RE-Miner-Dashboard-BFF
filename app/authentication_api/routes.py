@@ -38,13 +38,12 @@ def login():
     # -------------------------------------------------------------------
     access_token = generate_access_token(email)
     refresh_token = generate_refresh_token(email)
-    
     resp = jsonify({'login': True})
     set_access_cookies(resp, access_token)
     set_refresh_cookies(resp, refresh_token)
     return resp, 200
 
-@authentication_api_bp.route('/token/refresh', methods=['POST'])
+@authentication_api_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh_access_token():
     authentication_api_logger.info(f"[{datetime.now()}]: Refresh token request") 
