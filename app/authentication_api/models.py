@@ -1,9 +1,9 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField
-from wtforms.validators import InputRequired, Length
+from wtforms.validators import InputRequired, Length, Email
 
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[InputRequired(), Length(min=3, max=30)])
+    email = StringField('Email', validators=[InputRequired(), Length(min=5), Email()])
     password = PasswordField('Password', validators=[InputRequired(), Length(min=8, max=30)])
     
     # Excluding CSRF Token field (we are using JWT)

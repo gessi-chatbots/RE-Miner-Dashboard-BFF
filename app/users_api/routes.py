@@ -4,7 +4,7 @@ from . import users_api_bp, users_api_logger, UserIntegrityException, UserNotFou
 from datetime import datetime
 from .service import create_user, get_user_by_email, update_user_by_email, delete_user_by_email
 from flask_jwt_extended import jwt_required, get_jwt_identity
-
+from .models import RegistrationForm
 @jwt.user_identity_loader
 def user_identity_lookup(user):
     return user
@@ -31,15 +31,17 @@ def ping():
     users_api_logger.info(f"[{datetime.now()}]: Ping Users API") 
     return make_response(jsonify({'message': 'Ping Users API ok'}), 200)
 
-@users_api_bp.route("/", methods=['POST'])
+@users_api_bp.route("", methods=['POST'])
 def create():
     users_api_logger.info(f"[{datetime.now()}]: Register User")
-    if request.form is None:
-        return make_response(jsonify({'message': 'No form data has been provided' }), 400)
-    if request.form.get('password') is None: 
-        return make_response(jsonify({'message': 'No password has been provided' }), 400)
-    if request.form.get('email') is None: 
-        return make_response(jsonify({'message': 'No email has been provided' }), 400)
+    registration_form = RegistrationForm(request.form)
+    if not registration_form.validate():
+        errors = {"errors": []}
+        for field, messages in registration_form.errors.items():
+            for error in messages:
+                errors["errors"].append({"field": field, "message": error})
+        return jsonify(errors), 400
+    
     user = create_user(request.form)
     return make_response(jsonify({'user_data': user }), 201)
 
