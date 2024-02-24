@@ -10,6 +10,15 @@ from flask_jwt_extended import (set_access_cookies,
                                 get_jwt_identity,
                                 unset_jwt_cookies)
 
+def validate_login_form(form): 
+    if not form.validate():
+        errors = {"errors": []}
+        for field, messages in form.errors.items():
+            for error in messages:
+                errors["errors"].append({"field": field, "message": error})
+        return jsonify(errors), 400
+    
+
 @authentication_api_bp.route('/ping', methods=['GET'])
 def ping():
     authentication_api_logger.info(f"[{datetime.now()}]: Ping Authentication API") 
@@ -18,19 +27,15 @@ def ping():
 @authentication_api_bp.route('/login', methods=['POST'])
 def login():
     authentication_api_logger.info(f"[{datetime.now()}]: Login User")
+    # COMMENT THIS PART IF YOU WANT AUTHENTICATION WITHOUT USER VALIDATION
+    # -------------------------------------------------------------------
     login_form = LoginForm(request.form)
-    if not login_form.validate():
-        errors = {"errors": []}
-        for field, messages in login_form.errors.items():
-            for error in messages:
-                errors["errors"].append({"field": field, "message": error})
-        return jsonify(errors), 400
-    
+    validate_login_form(login_form)
     email = login_form.email.data
     password = login_form.password.data
     if not check_valid_user(email, password):
         abort(401, description='Invalid credentials')
-
+    # -------------------------------------------------------------------
     access_token = generate_access_token(email)
     refresh_token = generate_refresh_token(email)
     
