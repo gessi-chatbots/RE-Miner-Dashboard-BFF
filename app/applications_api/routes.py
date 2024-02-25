@@ -20,11 +20,11 @@ def ping():
 @jwt_required()
 def create_applications():
     applications_api_logger.info(f"[{datetime.now()}]: Create Applications request")
-    applications_json = json.loads(request.get_json())
-    if applications_json is None:
+    applications_list = json.loads(json.dumps(request.get_json()))
+    if len(applications_list) == 0:
         return make_response(jsonify(responses['empty_applications_body']), 400)
     
-    process_applications(request.get_json())
+    process_applications(applications_list)
     return make_response(jsonify(responses['create_applications_success']), 200)
     
 @applications_api_bp.route('/application/<string:id>', methods=['PUT', 'POST'])
