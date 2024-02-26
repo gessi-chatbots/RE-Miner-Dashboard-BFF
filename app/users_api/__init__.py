@@ -32,6 +32,3 @@ def user_lookup_callback(_jwt_header, jwt_data):
     return get_user_by_id(jwt_data["sub"])
 
 from . import routes, models
-
-
-

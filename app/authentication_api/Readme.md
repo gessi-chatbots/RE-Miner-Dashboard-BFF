@@ -75,10 +75,13 @@ The API consists of the following files:
     ```
     
 ## How to Use It
+---
+**IMPORTANT**: For using this API, user mangament via Database is highly recommended, if not you won't be able to validate what is being sent within the JWT, this can provoke security issues. In this part I am assuming you have an User Management System. 
+---
 Once you have properly installed the Authentication API and the Flask application runs correctly, you can start using it. 
 
-1. You must define what content from your user you want to set in the JWT and how do you load that user from the database. 
-The example that follows represents a situation that we are using Users and they have an ID.
+1. You should define what content from your user you want to set in the JWT and how do you load that user from the database. 
+The example that follows represents a situation that we are using [Users and they have an ID](../users_api/models.py), we also use a [service method for retrieving the User](../users_api/service.py).
    ```python
         # We load the user id (privacy purposes) in the JWT
         @jwt.user_identity_loader
