@@ -1,7 +1,7 @@
 import secrets
 from flask import Flask
 from flask_jwt_extended import JWTManager
-from datetime import timedelta, datetime
+from datetime import timedelta
 import os
 
 
@@ -15,7 +15,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # API version
 general_api_version = 'v1'
 
-# Token Management
+# JWT Configuration
 app.config["JWT_COOKIE_SECURE"] = True
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)

@@ -27,14 +27,14 @@ def get_user_by_id(id):
         raise UserNotFound()
     return user
 
-def get_user_by_email(email):
-    user = User.query.filter_by(email=email).one_or_none()
+def get_user(id):
+    user = User.query.filter_by(id=id).one_or_none()
     if user is None: 
         raise UserNotFound()
     return user
 
-def update_user_by_email(email, form):
-    user = get_user_by_email(email)
+def update_user(id, form):
+    user = get_user_by_id(id)
     try:
         user.name = form.get('name', user.name)
         user.family_name = form.get('family_name', user.family_name)
@@ -43,8 +43,8 @@ def update_user_by_email(email, form):
     except Exception as e:
         db.session.rollback()
 
-def delete_user_by_email(email):
-    user = get_user_by_email(email)
+def delete_user(id):
+    user = get_user_by_id(id)
     try:
         db.session.delete(user)
         db.session.commit()

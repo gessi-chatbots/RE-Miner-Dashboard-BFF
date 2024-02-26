@@ -67,15 +67,29 @@ The API consists of the following files:
     ```
     3. In your [Flask application set up code](../__init__.py), register the Authentication API in your Flask application
     ```python
-
         # Import the blueprint from the authentication api
         from app.authentication_api.routes import authentication_api_bp
 
         # Register blueprint in the app and add the desired url prefix
         app.register_blueprint(authentication_api_bp, url_prefix=f'/api/{general_api_version}')
     ```
+    
 ## How to Use It
-    Once you have properly installed the Authentication API and the Flask application runs correctly, you can start using it. 
-## API Endpoint Docs
+Once you have properly installed the Authentication API and the Flask application runs correctly, you can start using it. 
 
+1. You must define what content from your user you want to set in the JWT and how do you load that user from the database. 
+The example that follows represents a situation that we are using Users and they have an ID.
+   ```python
+        # We load the user id (privacy purposes) in the JWT
+        @jwt.user_identity_loader
+        def user_identity_lookup(user):
+            return user.id
 
+        # We use a get_user_by_id method from the service layer to retrieve the user 
+        # from the ID that comes within the JWT. This allows us to check if it is a 
+        # valid user.
+        from .service import get_user_by_id
+        @jwt.user_lookup_loader
+        def user_lookup_callback(_jwt_header, jwt_data):
+            return get_user_by_id(jwt_data["sub"])
+    ```
