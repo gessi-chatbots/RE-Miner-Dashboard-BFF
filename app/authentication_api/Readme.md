@@ -101,6 +101,7 @@ In the following example, we assume the usage of [Users with an ID](../users_api
             jwt_id = get_jwt_identity()
             if id != jwt_id:
                 return make_response(jsonify({'Unauthorized': 'Cannot retrieve data from another user'}), 401)
+            # We check the User really exists in the DB
             user = get_user_by_id(id)
             return make_response(jsonify({'user': user.json()}), 200)
     ```
