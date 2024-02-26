@@ -75,24 +75,32 @@ The API consists of the following files:
     ```
     
 ## How to Use It
----
-**IMPORTANT**: For using this API, user mangament via Database is highly recommended, if not you won't be able to validate what is being sent within the JWT, this can provoke security issues. In this part I am assuming you have an User Management System. 
----
-Once you have properly installed the Authentication API and the Flask application runs correctly, you can start using it. 
 
-1. You should define what content from your user you want to set in the JWT and how do you load that user from the database. 
-The example that follows represents a situation that we are using [Users and they have an ID](../users_api/models.py), we also use a [service method for retrieving the User](../users_api/service.py).
+**IMPORTANT**: It is highly recommended to manage users via a database when using this API. Failure to do so may result in an inability to validate the content within the JWT, potentially leading to security issues. In this section, it is assumed that you have a User Management System.
+
+Once you have properly installed the Authentication API and ensured the correct functioning of the Flask application, you can start using it.
+
+1. Define the content from your user that you want to set in the JWT and establish how to load that user from the database for validation purposes. 
+In the following example, we assume the usage of [Users with an ID](../users_api/models.py).
+
    ```python
-        # We load the user id (privacy purposes) in the JWT
+        # Load the user ID (for privacy purposes) into the JWT
         @jwt.user_identity_loader
         def user_identity_lookup(user):
             return user.id
-
-        # We use a get_user_by_id method from the service layer to retrieve the user 
-        # from the ID that comes within the JWT. This allows us to check if it is a 
-        # valid user.
-        from .service import get_user_by_id
-        @jwt.user_lookup_loader
-        def user_lookup_callback(_jwt_header, jwt_data):
-            return get_user_by_id(jwt_data["sub"])
+    ```
+2. For protecting the endpoints you should do as it is done in [this endpoint example from an User API route](../users_api/routes.py):
+    ```python
+        from flask_jwt_extended import jwt_required, get_jwt_identity
+        @users_api_bp.route('/user/<string:id>', methods=['GET'])
+        # We specify that JWT is required
+        @jwt_required()
+        def get(id):
+            users_api_logger.info(f"[{datetime.now()}]: Get User {id}")
+            # We load the ID that is stored in the JWT
+            jwt_id = get_jwt_identity()
+            if id != jwt_id:
+                return make_response(jsonify({'Unauthorized': 'Cannot retrieve data from another user'}), 401)
+            user = get_user_by_id(id)
+            return make_response(jsonify({'user': user.json()}), 200)
     ```
