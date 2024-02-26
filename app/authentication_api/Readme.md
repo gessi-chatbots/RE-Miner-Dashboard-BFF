@@ -27,7 +27,7 @@ The API consists of the following files:
      pipenv install flask_jwt_extended
      ```
 
-2. In your [Flask app set up code](../__init__.py), add the following:
+2. In your [Flask application set up code](../__init__.py), add the following:
    1. Import library: 
     ```python
         import secrets
@@ -65,7 +65,17 @@ The API consists of the following files:
         # Initialize JWTManager with the Flask app
         jwt = JWTManager(app)
     ```
+    3. In your [Flask application set up code](../__init__.py), register the Authentication API in your Flask application
+    ```python
+
+        # Import the blueprint from the authentication api
+        from app.authentication_api.routes import authentication_api_bp
+
+        # Register blueprint in the app and add the desired url prefix
+        app.register_blueprint(authentication_api_bp, url_prefix=f'/api/{general_api_version}')
+    ```
 ## How to Use It
+    Once you have properly installed the Authentication API and the Flask application runs correctly, you can start using it. 
 ## API Endpoint Docs
 
 
