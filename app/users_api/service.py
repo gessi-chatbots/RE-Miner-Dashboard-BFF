@@ -27,8 +27,8 @@ def get_user_by_id(id):
         raise UserNotFound()
     return user
 
-def get_user(id):
-    user = User.query.filter_by(id=id).one_or_none()
+def get_user_by_email(email):
+    user = User.query.filter_by(email=email).one_or_none()
     if user is None: 
         raise UserNotFound()
     return user

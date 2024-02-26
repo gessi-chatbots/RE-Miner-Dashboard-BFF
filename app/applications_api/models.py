@@ -1,9 +1,11 @@
 from app import db
 
-application_review_association = db.Table('application_reviews',
-    db.Column('application_name', db.String, db.ForeignKey('applications.name')),
-    db.Column('review_id', db.String, db.ForeignKey('reviews.id'))
+application_review_association = db.Table(
+    'application_reviews',
+    db.Column('application_name', db.String, db.ForeignKey('applications.name'), primary_key=True),
+    db.Column('review_id', db.String, db.ForeignKey('reviews.id'), primary_key=True)
 )
+
 
 class Application(db.Model):
     __tablename__ = 'applications'

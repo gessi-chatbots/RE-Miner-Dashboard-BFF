@@ -3,10 +3,11 @@ from flask_login import UserMixin
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Length, Email
+
 user_application_association = db.Table(
     'user_applications',
-    db.Column('user_id', db.String(36), db.ForeignKey('users.id')),
-    db.Column('application_name', db.String, db.ForeignKey('applications.name'))
+    db.Column('user_id', db.String(36), db.ForeignKey('users.id'), primary_key=True),
+    db.Column('application_name', db.String, db.ForeignKey('applications.name'), primary_key=True)
 )
 
 class RegistrationForm(FlaskForm):

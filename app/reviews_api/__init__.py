@@ -9,4 +9,8 @@ reviews_api_logger = logging.getLogger('reviews_api')
 reviews_api_logger.setLevel(logging.DEBUG)
 reviews_api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]reviews_api.log'))
 
+class ReviewNotFound(Exception):
+    code = 404
+    message = "Review not found"
+    
 from . import routes, models
