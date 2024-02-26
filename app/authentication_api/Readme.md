@@ -27,10 +27,11 @@ The API consists of the following files:
      pipenv install flask_jwt_extended
      ```
 
-2. In your app setup code, add the following:
+2. In your [Flask app set up code](../__init__.py), add the following:
    1. Import library: 
     ```python
-    from flask_jwt_extended import JWTManager
+        import secrets
+        from flask_jwt_extended import JWTManager
     ```
    2. Set up library config: 
     ```python
@@ -43,13 +44,16 @@ The API consists of the following files:
         # Set the expiration time for access tokens to 1 hour (you can change)
         app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 
-        # Set the path for the access token cookie based on the general API version (the request to the routes included in this path will contain the access token)
+        # Set the path for the access token cookie based on the general API version 
+        # The requests sent to the routes included in this path will contain the access token
         app.config['JWT_ACCESS_COOKIE_PATH'] = f'/api/{general_api_version}'
 
         # Set the expiration time for refresh tokens to 30 days
         app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 
-        # Set the path for the refresh token cookie based on the general API version (here as we only need the refresh token for refreshing the access token, we limit it to the refresh endpoint, by doing it we reduce the cookie qty in the request)
+        # Set the path for the refresh token cookie based on the general API version 
+        # Here as we only need the refresh token for refreshing the access token, 
+        # we limit it to the refresh endpoint. (by doing that, we reduce the cookie qty in the request)
         app.config['JWT_REFRESH_COOKIE_PATH'] = f'/api/{general_api_version}/refresh'
 
         # Disable CSRF protection for JWT cookies
@@ -64,5 +68,4 @@ The API consists of the following files:
 ## How to Use It
 ## API Endpoint Docs
 
-[Include documentation for API endpoints here]
 
