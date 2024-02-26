@@ -41,9 +41,11 @@ def create():
 @jwt_required()
 def get(id):
     users_api_logger.info(f"[{datetime.now()}]: Get User {id}")
-    jwt_id = get_jwt_identity()
-    if id != jwt_id:
+    user_id = get_jwt_identity()
+    if id != user_id:
         return make_response(jsonify({'Unauthorized': 'Cannot retrieve data from another user'}), 401)
+    if get_user_by_id(user_id) is None:
+        return make_response(jsonify({'Unauthorized': 'Invalid user'}), 401)
     user = get_user_by_id(id)
     return make_response(jsonify({'user': user.json()}), 200)
 
@@ -53,9 +55,11 @@ def update(id):
     users_api_logger.info(f"[{datetime.now()}]: Update User {id}")
     if request.form is None:
         return make_response(jsonify({'message': 'No User data provided'}), 400)
-    jwt_id = get_jwt_identity()
-    if id != jwt_id:
+    user_id = get_jwt_identity()
+    if id != user_id:
         return make_response(jsonify({'Unauthorized': 'Cannot update data from another user'}), 401)
+    if get_user_by_id(user_id) is None:
+        return make_response(jsonify({'Unauthorized': 'Invalid user'}), 401)
     user = update_user(id, request.form)
     return make_response(jsonify({'user_data': user}), 200)
 
@@ -63,8 +67,10 @@ def update(id):
 @jwt_required()
 def delete(id):
     users_api_logger.info(f"[{datetime.now()}]: Delete User {id}")
-    jwt_id = get_jwt_identity()
+    user_id = get_jwt_identity()
     if id != jwt_id:
         return make_response(jsonify({'Unauthorized': 'Cannot update data from another user'}), 401)
+    if get_user_by_id(user_id) is None:
+        return make_response(jsonify({'Unauthorized': 'Invalid user'}), 401)
     delete_user(id)
     return make_response(jsonify({'message': 'user deleted'}), 200)

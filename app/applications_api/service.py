@@ -32,6 +32,7 @@ def process_application(application):
 
 def get_application_by_name(name): 
     return Application.query.filter_by(name=name).one_or_none()
+
 def process_applications(user_id, applications):
     try:
         db.session.begin()
@@ -43,3 +44,11 @@ def process_applications(user_id, applications):
         db.session.commit()     
     except IntegrityError as e:
         db.session.rollback()
+
+def is_application_from_user(application_name, user_id):
+    user = get_user_by_id(user_id)
+    return None
+
+def get_all_user_applications(user_id):
+    user = get_user_by_id
+    return None
