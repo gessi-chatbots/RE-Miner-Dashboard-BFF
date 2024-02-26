@@ -1,5 +1,5 @@
 from .models import Application, db
-import uuid
+from flask import jsonify
 from ..reviews_api.service import process_application_reviews, get_review_by_id
 from ..users_api.service import get_user_by_id
 from sqlalchemy.exc import IntegrityError
@@ -50,5 +50,7 @@ def is_application_from_user(application_name, user_id):
     return None
 
 def get_all_user_applications(user_id):
-    user = get_user_by_id
-    return None
+    user = get_user_by_id(user_id)
+    applications = user.applications.all()
+    application_list = [{'name': app.name} for app in applications]
+    return jsonify(application_list)

@@ -20,17 +20,17 @@ def ping():
     return make_response(jsonify(responses['ping']), 200)
 
 
-@applications_api_bp.route('/', methods=['GET'])
+@applications_api_bp.route('', methods=['GET'])
 @jwt_required()
-def get_all_user_applications():
+def get_all():
     applications_api_logger.info(f"[{datetime.now()}]: Get all user applications")
     user_id = get_jwt_identity()
     if get_user_by_id(user_id) is None:
         return make_response(jsonify({'Unauthorized': 'Invalid user'}), 401)
     user_applications = get_all_user_applications(user_id)
-    return None
+    return make_response(user_applications, 200)
 
-@applications_api_bp.route('/', methods=['POST'])
+@applications_api_bp.route('', methods=['POST'])
 @jwt_required()
 def create_applications():
     applications_api_logger.info(f"[{datetime.now()}]: Create Applications request")
