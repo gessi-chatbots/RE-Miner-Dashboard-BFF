@@ -104,3 +104,6 @@ In the following example, we assume the usage of [Users with an ID](../users_api
             user = get_user_by_id(id)
             return make_response(jsonify({'user': user.json()}), 200)
     ```
+
+## API Docs
+In the [RE-Miner Dashboard Backend postman collection](../../RE-Miner-Dashboard-Backend.postman_collection) you can find all the Authenticatio API requests and you can import them to your postman.
