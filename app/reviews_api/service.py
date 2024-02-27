@@ -29,7 +29,7 @@ def save_review_in_graph_db(review):
 
 def process_review(application_name, review):
     save_review_in_sql_db(application_name, review)
-    save_review_in_graph_db(review)
+    # save_review_in_graph_db(review)
 
 def get_review_by_id(id):
     review = Review.query.filter_by(id=id).one_or_none()

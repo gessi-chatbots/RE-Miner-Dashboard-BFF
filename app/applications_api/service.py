@@ -7,10 +7,16 @@ from sqlalchemy.exc import IntegrityError
 def update_application(application_data, application_entity):
     process_application_reviews(application_data.get('app_name'), 
                                 application_data.get('reviews', []))
-    application_reviews = application_data.get('reviews', [])
-    for application_review in application_reviews:
-        review_entity = get_review_by_id(application_review.get('reviewId'))
-        if review_entity:
+    
+    new_application_reviews = application_data.get('reviews', [])
+    
+    for new_application_review in new_application_reviews:
+        new_review_id = new_application_review.get('reviewId')
+        
+        # We check if the review is already saved in the database
+        review_entity = get_review_by_id(new_review_id)
+        
+        if review_entity and new_review_id not in [review.id for review in application_entity.reviews]:
             application_entity.reviews.append(review_entity)     
 
 def create_new_application(application):
@@ -28,7 +34,6 @@ def create_new_application(application):
                 new_application.reviews.append(review_entity)           
         db.session.add(new_application)
     except IntegrityError as e:
-        print('App already exists rollbacking...')
         db.session.rollback()
 
 def save_application_in_sql_db(application_data):
@@ -39,32 +44,28 @@ def save_application_in_sql_db(application_data):
         update_application(application_data, application_entity)
     
 
-# TODO connect to GraphDB
-def save_application_in_graph_db(application):
-    return None
-
 def process_application(application):
     save_application_in_sql_db(application)
-    save_application_in_graph_db(application)
+    # save_application_in_graph_db(application)
 
 def get_application_by_name(name): 
     return Application.query.filter_by(name=name).one_or_none()
 
 def process_applications(user_id, applications):
     try:
-        db.session.begin()
         user = get_user_by_id(user_id)
         for application in applications:
-            # TODO check if there is a way to obtain the entity and not doing w & r
+            application_name = application.get('app_name')
             process_application(application)
-            user.applications.append(get_application_by_name(application.get('app_name')))
+            if not is_application_from_user(application_name, user):
+                user.applications.append(get_application_by_name(application_name))
         db.session.commit()     
     except IntegrityError as e:
+        print(e)
         db.session.rollback()
 
-def is_application_from_user(application_name, user_id):
-    user = get_user_by_id(user_id)
-    return None
+def is_application_from_user(application_name, user):
+    return application_name in [application.name for application in user.applications]
 
 def get_all_user_applications(user_id):
     user = get_user_by_id(user_id)
