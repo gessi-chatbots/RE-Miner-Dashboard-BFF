@@ -22,10 +22,10 @@ class UserIntegrityException(Exception):
     message = "An User with the given email is already registered"
 
 # JWT Loader and Lookup
-from .service import get_user_by_email
+from .service import get_user_by_id
 @jwt.user_identity_loader
-def user_identity_lookup(email):
-    user = get_user_by_email(email)
+def user_identity_lookup(id):
+    user = get_user_by_id(id)
     return user.id
 
 from . import routes, models
