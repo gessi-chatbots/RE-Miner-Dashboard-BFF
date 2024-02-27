@@ -1,6 +1,5 @@
 from . import ReviewNotFound
 from .models import Review, db
-import uuid
 from sqlalchemy.exc import IntegrityError
 
 def save_review_in_sql_db(application_name, review):
@@ -19,6 +18,8 @@ def save_review_in_sql_db(application_name, review):
 
 # TODO
 def save_review_in_graph_db(review):
+    # We should add NLTK and split the reviews
+    # Expand the GraphDB
     return None
 
 def process_review(application_name, review):

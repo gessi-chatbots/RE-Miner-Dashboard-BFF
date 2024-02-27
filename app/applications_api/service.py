@@ -22,7 +22,7 @@ def save_application_in_sql_db(application):
         print('App already exists rollbacking...')
         db.session.rollback()
 
-# TODO
+# TODO connect to GraphDB
 def save_application_in_graph_db(application):
     return None
 
@@ -54,3 +54,12 @@ def get_all_user_applications(user_id):
     applications = user.applications.all()
     application_list = [{'name': app.name} for app in applications]
     return jsonify(application_list)
+
+def edit_application(application):
+    return None
+
+def delete_application(application):
+    return None
+
+def get_application(application):
+    return None
