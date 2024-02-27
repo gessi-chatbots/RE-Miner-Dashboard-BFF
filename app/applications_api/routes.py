@@ -40,7 +40,12 @@ def get_all():
 @jwt_required()
 def create_applications():
     applications_api_logger.info(f"[{datetime.now()}]: Create Applications request")
-    applications_list = json.loads(json.dumps(request.get_json()))
+    applications_list = []
+    if 'applications_file' in request.files:
+        applications_file = request.files['applications_file']
+        applications_list = json.loads(applications_file)
+    else:
+        applications_list = json.loads(json.dumps(request.get_json()))
     if len(applications_list) == 0:
         return make_response(jsonify(responses['empty_applications_body']), 400)
     user_id = get_jwt_identity()
