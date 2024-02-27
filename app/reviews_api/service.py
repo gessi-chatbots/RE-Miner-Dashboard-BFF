@@ -2,7 +2,7 @@ from . import ReviewNotFound
 from .models import Review, db
 from sqlalchemy.exc import IntegrityError
 
-def create_new_review(review_data):
+def create_review(review_data):
     try: 
         review_data = {
             'id': review_data.get('reviewId')
@@ -17,7 +17,7 @@ def create_new_review(review_data):
 def save_review_in_sql_db(application_name, review_data):
     review_entity = get_review_by_id(review_data.get('reviewId', ''))
     if review_entity is None:
-        create_new_review(review_data)
+        create_review(review_data)
     else:
         return review_entity.json()    
 
