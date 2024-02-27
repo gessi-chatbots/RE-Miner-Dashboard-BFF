@@ -48,9 +48,9 @@ def login():
 def refresh_access_token():
     authentication_api_logger.info(f"[{datetime.now()}]: Refresh token request") 
     resp = jsonify({'refresh': True})
-    email = get_jwt_identity()
-    authentication_api_logger.info(f"[{datetime.now()}]: Email: {email}") 
-    set_access_cookies(resp, generate_access_token(email))
+    id = get_jwt_identity()
+    authentication_api_logger.info(f"[{datetime.now()}]: Id: {id}") 
+    set_access_cookies(resp, generate_access_token(id))
     return resp, 200
 
 @authentication_api_bp.route('/logout', methods=['POST'])
