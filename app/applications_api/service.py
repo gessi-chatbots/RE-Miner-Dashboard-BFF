@@ -55,6 +55,7 @@ def process_applications(user_id, applications):
         for application in applications:
             application_name = application.get('app_name')
             process_application(application)
+            # TODO check if ORM handles by itself
             if not is_application_from_user(application_name, user.id):
                 user.applications.append(get_application_by_name(application_name))
         db.session.commit()   
