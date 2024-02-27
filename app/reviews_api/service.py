@@ -33,8 +33,6 @@ def process_review(application_name, review):
 
 def get_review_by_id(id):
     review = Review.query.filter_by(id=id).one_or_none()
-    if review is None: 
-        raise ReviewNotFound()
     return review
 
 def process_application_reviews(application_name, reviews):

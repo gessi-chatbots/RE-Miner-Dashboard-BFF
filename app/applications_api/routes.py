@@ -17,6 +17,8 @@ responses = {
     'empty_applications_body': {'error': 'No applications present in request'},
     'unauthorized': {'Unauthorized': 'No applications present in request'},
     'edit_application_success': {'message': 'Application updated successfully'},
+    'delete_application_success': {'message': 'Application has been deleted successfully'},
+    'not_user_application': {'message': 'User does not have assigned the requested application'}
 }
 
 @applications_api_bp.route('/ping', methods=['POST'])
@@ -41,19 +43,24 @@ def get_all():
 def create_applications():
     applications_api_logger.info(f"[{datetime.now()}]: Create Applications request")
     applications_list = []
-    if 'applications_file' in request.files:
+    if 'Content-Type' in request.headers and 'application/json' in request.headers['Content-Type']:
+        applications_list = request.get_json()
+    elif 'applications_file' in request.files:
         applications_file = request.files['applications_file']
-        applications_list = json.loads(applications_file)
+        applications_list = json.load(applications_file)
     else:
-        applications_list = json.loads(json.dumps(request.get_json()))
+        return make_response(jsonify({'error': 'Unsupported Media Type'}), 415)
+
     if len(applications_list) == 0:
         return make_response(jsonify(responses['empty_applications_body']), 400)
+    
     user_id = get_jwt_identity()
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
-    process_applications(user_id, applications_list)
-    return make_response(jsonify(responses['create_applications_success']), 200)
     
+    process_applications(user_id, applications_list)
+    return make_response(jsonify(responses['create_applications_success']), 201)
+
 # TODO connect to GraphDB to edit data from apps
 @applications_api_bp.route('/application/<string:application_name>', methods=['PUT', 'POST'])
 @jwt_required()
@@ -62,7 +69,7 @@ def edit_application(application_name):
     user_id = get_jwt_identity()
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
-    if not is_application_from_user(user_id):
+    if not is_application_from_user(application_name, user_id):
         return make_response(jsonify(responses['not_user_application']), 401)
     application = edit_application(application_name)
     return make_response(jsonify(responses['edit_application_success'], application), 200)
@@ -74,7 +81,7 @@ def delete_user_application(application_name):
     user_id = get_jwt_identity()
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
-    if not is_application_from_user(user_id):
+    if not is_application_from_user(application_name, user_id):
         return make_response(jsonify(responses['not_user_application']), 401)
     delete_application(application_name)
     return make_response(jsonify(responses['delete_application_success']), 204)
@@ -88,5 +95,5 @@ def get_user_application(application_name):
         return make_response(jsonify(responses['unauthorized']), 401)
     if not is_application_from_user(application_name, user_id):
         return make_response(jsonify(responses['not_user_application']), 401)
-    application = get_application(application_name)
-    return make_response(application, 200)
+    application_data = get_application(application_name)
+    return make_response(application_data, 200)

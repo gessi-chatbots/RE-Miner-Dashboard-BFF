@@ -12,10 +12,8 @@ def update_application(application_data, application_entity):
     
     for new_application_review in new_application_reviews:
         new_review_id = new_application_review.get('reviewId')
-        
         # We check if the review is already saved in the database
         review_entity = get_review_by_id(new_review_id)
-        
         if review_entity and new_review_id not in [review.id for review in application_entity.reviews]:
             application_entity.reviews.append(review_entity)     
 
@@ -49,7 +47,7 @@ def process_application(application):
     # save_application_in_graph_db(application)
 
 def get_application_by_name(name): 
-    return Application.query.filter_by(name=name).one_or_none()
+    return db.session.query(Application).filter_by(name=name).one_or_none()
 
 def process_applications(user_id, applications):
     try:
@@ -57,14 +55,15 @@ def process_applications(user_id, applications):
         for application in applications:
             application_name = application.get('app_name')
             process_application(application)
-            if not is_application_from_user(application_name, user):
+            if not is_application_from_user(application_name, user.id):
                 user.applications.append(get_application_by_name(application_name))
-        db.session.commit()     
+        db.session.commit()   
     except IntegrityError as e:
         print(e)
         db.session.rollback()
 
-def is_application_from_user(application_name, user):
+def is_application_from_user(application_name, user_id):
+    user = get_user_by_id(user_id)
     return application_name in [application.name for application in user.applications]
 
 def get_all_user_applications(user_id):
@@ -76,8 +75,17 @@ def get_all_user_applications(user_id):
 def edit_application(application):
     return None
 
-def delete_application(application):
-    return None
+def delete_application(application_name):
+    application_entity = get_application_by_name(application_name)
+    if application_entity:
+        db.session.delete(application_entity)
+        db.session.commit()
+    
 
-def get_application(application):
-    return None
+def get_application(application_name):
+    application_entity = get_application_by_name(application_name)
+    application_data = {
+        "name": application_entity.json(),
+        "reviews": [review.json() for review in application_entity.reviews]
+    }
+    return application_data
