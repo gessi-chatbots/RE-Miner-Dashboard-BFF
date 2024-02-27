@@ -68,7 +68,7 @@ def update(id):
 def delete(id):
     users_api_logger.info(f"[{datetime.now()}]: Delete User {id}")
     user_id = get_jwt_identity()
-    if id != jwt_id:
+    if id != user_id:
         return make_response(jsonify({'Unauthorized': 'Cannot update data from another user'}), 401)
     if get_user_by_id(user_id) is None:
         return make_response(jsonify({'Unauthorized': 'Invalid user'}), 401)
