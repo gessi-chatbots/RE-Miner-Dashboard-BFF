@@ -2,19 +2,24 @@ from . import ReviewNotFound
 from .models import Review, db
 from sqlalchemy.exc import IntegrityError
 
-def save_review_in_sql_db(application_name, review):
-    try:
-        db.session.begin_nested()
+def create_new_review(review_data):
+    try: 
         review_data = {
-            'id': review.get('reviewId')
+            'id': review_data.get('reviewId')
         }
         new_review = Review(**review_data)
         db.session.add(new_review)
         db.session.commit()
         return new_review.json()
     except IntegrityError as e:
-        print('Review already exists rollbacking...')
         db.session.rollback()
+
+def save_review_in_sql_db(application_name, review_data):
+    review_entity = get_review_by_id(review_data.get('reviewId', ''))
+    if review_entity is None:
+        create_new_review(review_data)
+    else:
+        return review_entity.json()    
 
 # TODO
 def save_review_in_graph_db(review):

@@ -4,7 +4,16 @@ from ..reviews_api.service import process_application_reviews, get_review_by_id
 from ..users_api.service import get_user_by_id
 from sqlalchemy.exc import IntegrityError
 
-def save_application_in_sql_db(application):
+def update_application(application_data, application_entity):
+    process_application_reviews(application_data.get('app_name'), 
+                                application_data.get('reviews', []))
+    application_reviews = application_data.get('reviews', [])
+    for application_review in application_reviews:
+        review_entity = get_review_by_id(application_review.get('reviewId'))
+        if review_entity:
+            application_entity.reviews.append(review_entity)     
+
+def create_new_application(application):
     try:
         process_application_reviews(application.get('app_name'), 
                                     application.get('reviews', []))
@@ -21,6 +30,14 @@ def save_application_in_sql_db(application):
     except IntegrityError as e:
         print('App already exists rollbacking...')
         db.session.rollback()
+
+def save_application_in_sql_db(application_data):
+    application_entity = get_application_by_name(application_data.get('app_name'))
+    if application_entity is None: 
+        create_new_application(application_data)
+    else: 
+        update_application(application_data, application_entity)
+    
 
 # TODO connect to GraphDB
 def save_application_in_graph_db(application):
