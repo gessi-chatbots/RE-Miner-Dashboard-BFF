@@ -23,7 +23,7 @@ def create_user(form):
 
 def get_user_by_id(id):
     user = User.query.filter_by(id=id).one_or_none()
-    if user is None: 
+    if user is None:
         raise UserNotFound()
     return user
 

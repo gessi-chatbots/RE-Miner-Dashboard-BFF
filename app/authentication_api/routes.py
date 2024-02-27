@@ -1,5 +1,5 @@
 from flask import request, jsonify, make_response, abort
-from .service import generate_access_token, generate_refresh_token
+from .service import generate_access_token, generate_refresh_token, refresh_access_token
 from app.users_api.service import check_valid_user
 from . import authentication_api_bp, authentication_api_logger
 from .models import LoginForm
@@ -45,12 +45,12 @@ def login():
 
 @authentication_api_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
-def refresh_access_token():
+def refresh():
     authentication_api_logger.info(f"[{datetime.now()}]: Refresh token request") 
     resp = jsonify({'refresh': True})
     id = get_jwt_identity()
     authentication_api_logger.info(f"[{datetime.now()}]: Id: {id}") 
-    set_access_cookies(resp, generate_access_token(id))
+    set_access_cookies(resp, refresh_access_token(id))
     return resp, 200
 
 @authentication_api_bp.route('/logout', methods=['POST'])
