@@ -1,5 +1,6 @@
 from app import db
 from app.models import Review
+from flask import jsonify
 import app.users_api.service as users_api_service
 import app.applications_api.service as applications_api_service
 from sqlalchemy.exc import IntegrityError
@@ -56,8 +57,11 @@ def process_application_reviews(user_id, application_name, reviews_data):
     for review in reviews_data:
         process_review(user_id, application_name, review, commit=False)
 
-def get_all_reviews(user_id):
-    return None
+def get_all_reviews_from_user(user_id):
+    user = users_api_service.get_user_by_id(user_id)
+    reviews = user.reviews.all()
+    review_list = [{'reviewId': review.id} for review in reviews]
+    return jsonify(review_list)
 
 def is_review_from_user(review_id, user_id):
     return None
