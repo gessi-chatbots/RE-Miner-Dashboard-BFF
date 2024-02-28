@@ -1,6 +1,6 @@
 from flask import Blueprint
 import logging
-from .. import jwt
+from app import jwt
 
 users_api_bp = Blueprint('users_api', __name__)
 
@@ -28,4 +28,4 @@ def user_identity_lookup(id):
     user = get_user_by_id(id)
     return user.id
 
-from . import routes, models
+from . import forms, routes

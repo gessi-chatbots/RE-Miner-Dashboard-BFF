@@ -2,14 +2,15 @@ from . import applications_api_bp, applications_api_logger
 from flask import request, make_response, jsonify
 import json
 from datetime import datetime
-from .service import (process_applications, 
-                      is_application_from_user, 
-                      get_all_user_applications,
-                      get_application,
-                      edit_application,
-                      delete_application)
-from ..users_api.service import get_user_by_id
+from app.applications_api.service import (process_applications, 
+                                          is_application_from_user, 
+                                          get_all_user_applications,
+                                          get_application,
+                                          edit_application,
+                                          delete_application)
+from app.users_api.service import get_user_by_id
 from flask_jwt_extended import jwt_required, get_jwt_identity
+
 responses = {
     'ping': {'message': 'Ping Applications API'},
     'user_id_missing': {'error': 'User ID is missing'},
@@ -64,15 +65,16 @@ def create_applications():
 # TODO connect to GraphDB to edit data from apps
 @applications_api_bp.route('/application/<string:application_name>', methods=['PUT', 'POST'])
 @jwt_required()
-def edit_application(application_name):
+def update_application(application_name):
     applications_api_logger.info(f"[{datetime.now()}]: 'Edit Application {application_name} data")
     user_id = get_jwt_identity()
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
     if not is_application_from_user(application_name, user_id):
         return make_response(jsonify(responses['not_user_application']), 401)
-    application = edit_application(application_name)
-    return make_response(jsonify(responses['edit_application_success'], application), 200)
+    application_data = request.get_json()
+    updated_application = edit_application(application_data)
+    return make_response(jsonify(responses['edit_application_success'], updated_application), 200)
 
 @applications_api_bp.route('/application/<string:application_name>', methods=['DELETE'])
 @jwt_required()

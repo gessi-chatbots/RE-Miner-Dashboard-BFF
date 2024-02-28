@@ -9,4 +9,4 @@ applications_api_logger = logging.getLogger('applications_api')
 applications_api_logger.setLevel(logging.DEBUG)
 applications_api_logger.addHandler(logging.FileHandler('logs/applications_api.log'))
 
-from . import routes, models
+from . import forms, routes

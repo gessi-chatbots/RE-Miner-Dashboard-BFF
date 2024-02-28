@@ -1,8 +1,10 @@
 from flask import request, jsonify, make_response, abort
-from .service import generate_access_token, generate_refresh_token, refresh_access_token
+from app.authentication_api.service import (generate_access_token, 
+                                            generate_refresh_token,
+                                            refresh_access_token)
 from app.users_api.service import check_valid_user
+from app.authentication_api.forms import LoginForm
 from . import authentication_api_bp, authentication_api_logger
-from .models import LoginForm
 from datetime import datetime
 from flask_jwt_extended import (set_access_cookies, 
                                 set_refresh_cookies, 

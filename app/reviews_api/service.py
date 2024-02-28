@@ -1,23 +1,40 @@
-from . import ReviewNotFound
-from .models import Review, db
+from app import db
+from app.models import Review
+import app.users_api.service as users_api_service
+import app.applications_api.service as applications_api_service
 from sqlalchemy.exc import IntegrityError
 
-def create_review(review_data):
-    try: 
-        review_data = {
-            'id': review_data.get('reviewId')
-        }
-        new_review = Review(**review_data)
-        db.session.add(new_review)
-        db.session.commit()
-        return new_review.json()
-    except IntegrityError as e:
-        db.session.rollback()
 
-def save_review_in_sql_db(application_name, review_data):
+def add_to_db_session(new_review_entity, user_entity, application_entity):
+    db.session.add_all([user_entity, application_entity, new_review_entity])
+
+def create_review(user_id, application_name, review_data, commit = False):
+    user_entity = users_api_service.get_user_by_id(user_id)
+    application_entity = applications_api_service.get_application_by_name(application_name)
+    if not user_entity or not application_entity:
+        return None 
+    mapped_review_data = {
+        "id": review_data['reviewId']
+    }
+    new_review_entity = Review(**mapped_review_data)
+    user_entity.reviews.append(new_review_entity)
+    application_entity.reviews.append(new_review_entity)
+    if commit:
+        try:
+            with db.session.begin_nested():
+                add_to_db_session(new_review_entity, application_entity, user_entity)
+                db.session.commit()
+                return new_review_entity.json()
+        except IntegrityError as e:
+            db.session.rollback()
+    else:
+        add_to_db_session(new_review_entity, application_entity, user_entity)
+    return new_review_entity.json()
+                
+def save_review_in_sql_db(user_id, application_entity, review_data, commit = False):
     review_entity = get_review_by_id(review_data.get('reviewId', ''))
     if review_entity is None:
-        create_review(review_data)
+        return create_review(user_id, application_entity, review_data, commit)
     else:
         return review_entity.json()    
 
@@ -27,14 +44,20 @@ def save_review_in_graph_db(review):
     # Expand the GraphDB
     return None
 
-def process_review(application_name, review):
-    save_review_in_sql_db(application_name, review)
+def process_review(user_id, application_name, review_data, commit = False):
+    save_review_in_sql_db(user_id, application_name, review_data, commit)
     # save_review_in_graph_db(review)
 
 def get_review_by_id(id):
     review = Review.query.filter_by(id=id).one_or_none()
     return review
 
-def process_application_reviews(application_name, reviews):
-    for review in reviews:
-        process_review(application_name, review)
+def process_application_reviews(user_id, application_name, reviews_data):
+    for review in reviews_data:
+        process_review(user_id, application_name, review, commit=False)
+
+def get_all_reviews(user_id):
+    return None
+
+def is_review_from_user(review_id, user_id):
+    return None

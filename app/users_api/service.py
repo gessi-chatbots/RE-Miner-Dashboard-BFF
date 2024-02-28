@@ -1,8 +1,8 @@
 from . import UserNotFound, UserIntegrityException
-from .models import User, db
+from app import db
+from app.models import User
 import uuid
 from sqlalchemy.exc import IntegrityError
-
 
 def create_user(form):
     try:

@@ -12,5 +12,5 @@ reviews_api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()
 class ReviewNotFound(Exception):
     code = 404
     message = "Review not found"
-    
-from . import routes, models
+
+from . import forms, routes

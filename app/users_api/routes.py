@@ -1,9 +1,9 @@
 from flask import request, jsonify, make_response
 from . import users_api_bp, users_api_logger, UserIntegrityException, UserNotFound, UnknownException
 from datetime import datetime
-from .service import create_user, get_user_by_id, update_user, delete_user
+from app.users_api.service import create_user, get_user_by_id, update_user, delete_user
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .models import RegistrationForm
+from app.users_api.forms import RegistrationForm
 
 @users_api_bp.errorhandler(UserNotFound)
 def handle_user_not_found(exception):
