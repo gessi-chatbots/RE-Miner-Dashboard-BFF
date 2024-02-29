@@ -51,6 +51,13 @@ def get_review_by_id(id):
     review = Review.query.filter_by(id=id).one_or_none()
     return review
 
+def get_review_data(id):
+    review = get_review_by_id(id)
+    review_data = {
+        "reviewId": review.id
+    }
+    return review_data
+
 def process_application_reviews(user_id, application_name, reviews_data):
     for review in reviews_data:
         process_review(user_id, application_name, review, commit=False)
@@ -64,4 +71,8 @@ def get_all_reviews_from_user(user_id):
     return review_list
 
 def is_review_from_user(review_id, user_id):
-    return None
+    user_entity = users_api_service.get_user_by_id(user_id)
+    if user_entity.reviews:
+        return review_id in [review.id for review in user_entity.reviews]
+    else: 
+        return False

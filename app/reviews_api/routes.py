@@ -62,15 +62,15 @@ def update_review(review_id):
 
 @reviews_api_bp.route('/review/<string:review_id>', methods=['GET'])
 @jwt_required()
-def get_review(review_id):
+def get(review_id):
     reviews_api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
     user_id = get_jwt_identity()
     if users_api_service.get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
     if not reviews_api_service.is_review_from_user(review_id, user_id):
         return make_response(jsonify(responses['not_user_review']), 401)
-    review_data = get_review(review_id)
-    return make_response(review_data, 200)
+    review_data = reviews_api_service.get_review_data(review_id)
+    return make_response(jsonify(review_data), 200)
 
 @reviews_api_bp.route('/review/<string:review_id>', methods=['DELETE'])
 @jwt_required()
