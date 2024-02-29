@@ -20,16 +20,14 @@ def create_review(user_id, application_name, review_data, commit = False):
     new_review_entity = Review(**mapped_review_data)
     user_entity.reviews.append(new_review_entity)
     application_entity.reviews.append(new_review_entity)
+    add_to_db_session(new_review_entity, application_entity, user_entity)
     if commit:
         try:
             with db.session.begin_nested():
-                add_to_db_session(new_review_entity, application_entity, user_entity)
                 db.session.commit()
                 return new_review_entity.json()
         except IntegrityError as e:
             db.session.rollback()
-    else:
-        add_to_db_session(new_review_entity, application_entity, user_entity)
     return new_review_entity.json()
                 
 def save_review_in_sql_db(user_id, application_entity, review_data, commit = False):

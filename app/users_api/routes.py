@@ -3,7 +3,7 @@ from . import users_api_bp, users_api_logger, UserIntegrityException, UserNotFou
 from datetime import datetime
 from app.users_api.service import create_user, get_user_by_id, update_user, delete_user
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.users_api.forms import RegistrationForm
+import app.users_api.forms as user_api_forms
 
 @users_api_bp.errorhandler(UserNotFound)
 def handle_user_not_found(exception):
@@ -26,7 +26,7 @@ def ping():
 @users_api_bp.route("", methods=['POST'])
 def create():
     users_api_logger.info(f"[{datetime.now()}]: Register User")
-    registration_form = RegistrationForm(request.form)
+    registration_form = user_api_forms.RegistrationForm(request.form)
     if not registration_form.validate():
         errors = {"errors": []}
         for field, messages in registration_form.errors.items():

@@ -13,7 +13,8 @@ class Application(db.Model):
     reviews = db.relationship(
         'Review', 
         secondary=application_review_association,
-        backref=db.backref('applications', lazy='dynamic'))
+        backref=db.backref('applications', lazy='dynamic'),
+        lazy='dynamic')
     
     def json(self):
         return {'name': self.name}
@@ -34,7 +35,7 @@ user_application_association = db.Table(
 user_review_association = db.Table(
     'user_reviews',
     db.Column('user_id', db.String(36), db.ForeignKey('users.id'), primary_key=True),
-    db.Column('review_id', db.String, db.ForeignKey('reviews.id'), primary_key=True)
+    db.Column('review_id', db.String, db.ForeignKey('reviews.id', ondelete='CASCADE'), primary_key=True)
 )
 
 class User(db.Model, UserMixin):
@@ -48,7 +49,7 @@ class User(db.Model, UserMixin):
         'Application',
         secondary=user_application_association,
         backref=db.backref('users', lazy='dynamic'),
-        lazy='dynamic'
+        lazy='dynamic'    
     )
     reviews = db.relationship(
         'Review',
