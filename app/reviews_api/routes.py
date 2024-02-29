@@ -3,6 +3,7 @@ from flask import make_response, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import app.users_api.service as users_api_service
 import app.reviews_api.service as reviews_api_service
+import app.reviews_api.forms as reviews_api_forms
 from datetime import datetime
 
 responses = {
@@ -21,18 +22,23 @@ def ping():
     reviews_api_logger.info(f"[{datetime.now()}]: Ping Reviews API")
     return make_response(jsonify(responses['ping']), 200)
 
-@reviews_api_bp.route('', methods=['POST'])
+@reviews_api_bp.route('/<string:application_name>', methods=['POST'])
 @jwt_required()
-def create_review():
-    reviews_api_logger.info(f"[{datetime.now()}]: Create Review")
+def create_review(application_name):
+    reviews_api_logger.info(f"[{datetime.now()}]: Create Review for application {application_name}")
     user_id = get_jwt_identity()
     if users_api_service.get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
-    review_data = request.get_json()
-    if review_data is None: 
-        return make_response(jsonify(responses['empty_reviews_body']), 400)
-    reviews_api_service.process_review(user_id, review_data, commit=True)
-
+    review_form = reviews_api_forms.ReviewForm(request.form)
+    if not review_form.validate():
+        errors = {"errors": []}
+        for field, messages in review_form.errors.items():
+            for error in messages:
+                errors["errors"].append({"field": field, "message": error})
+        return jsonify(errors), 400
+    if application_name is None: 
+        return make_response('no application name in query params', 400)
+    reviews_api_service.process_review(user_id, application_name, review_form.to_dict(), commit=True)
     return make_response(jsonify({"message":"created"}), 201)
 
 @reviews_api_bp.route('', methods=['GET'])

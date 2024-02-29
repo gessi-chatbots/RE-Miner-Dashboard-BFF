@@ -9,11 +9,11 @@ from sqlalchemy.exc import IntegrityError
 def add_to_db_session(new_review_entity, user_entity, application_entity):
     db.session.add_all([user_entity, application_entity, new_review_entity])
 
-def create_review(user_id, application_name, review_data, commit = False):
+def create_review(user_id, application_name, review_data, commit=False):
     user_entity = users_api_service.get_user_by_id(user_id)
     application_entity = applications_api_service.get_application_by_name(application_name)
     if not user_entity or not application_entity:
-        return None 
+        return None
     mapped_review_data = {
         "id": review_data['reviewId']
     }
@@ -21,14 +21,9 @@ def create_review(user_id, application_name, review_data, commit = False):
     user_entity.reviews.append(new_review_entity)
     application_entity.reviews.append(new_review_entity)
     add_to_db_session(new_review_entity, application_entity, user_entity)
-    if commit:
-        try:
-            with db.session.begin_nested():
-                db.session.commit()
-                return new_review_entity.json()
-        except IntegrityError as e:
-            db.session.rollback()
+    db.session.commit()
     return new_review_entity.json()
+
                 
 def save_review_in_sql_db(user_id, application_entity, review_data, commit = False):
     review_entity = get_review_by_id(review_data.get('reviewId', ''))
