@@ -21,7 +21,7 @@ def ping():
     reviews_api_logger.info(f"[{datetime.now()}]: Ping Reviews API")
     return make_response(jsonify(responses['ping']), 200)
 
-@reviews_api_bp.route('/', methods=['POST'])
+@reviews_api_bp.route('', methods=['POST'])
 @jwt_required()
 def create_review():
     reviews_api_logger.info(f"[{datetime.now()}]: Create Review")
@@ -35,18 +35,19 @@ def create_review():
 
     return make_response(jsonify({"message":"created"}), 201)
 
-@reviews_api_bp.route('/', methods=['GET'])
+@reviews_api_bp.route('', methods=['GET'])
 @jwt_required()
 def get_all():
     reviews_api_logger.info(f"[{datetime.now()}]: Get User Reviews")
     user_id = get_jwt_identity()
     if users_api_service.get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
-    review_data = request.get_json()
-    if review_data is None: 
-        return make_response(jsonify(responses['empty_reviews_body']), 400)
     reviews_data = reviews_api_service.get_all_reviews_from_user(user_id)
-    return make_response(jsonify(reviews_data), 200)
+    if len(reviews_data['reviews']) == 0:
+        return make_response('no content', 204)
+    else:
+        return make_response(jsonify(reviews_data), 200)
+    
 
 @reviews_api_bp.route('/review/<string:review_id>', methods=['PUT', 'POST'])
 @jwt_required()

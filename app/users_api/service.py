@@ -48,8 +48,5 @@ def delete_user(id):
         db.session.rollback()
 
 def check_valid_user(email, password):
-    try:
-        user = User.query.filter(User.email == email, User.password_hash == password).one()
-        return user is not None
-    except Exception as e:
-        db.session.rollback()
+    user = User.query.filter(User.email == email, User.password_hash == password).one_or_none()
+    return user is not None

@@ -58,8 +58,10 @@ def process_application_reviews(user_id, application_name, reviews_data):
 def get_all_reviews_from_user(user_id):
     user = users_api_service.get_user_by_id(user_id)
     reviews = user.reviews.all()
-    review_list = [{'reviewId': review.id} for review in reviews]
-    return jsonify(review_list)
+    review_list = {
+        "reviews" : [{'reviewId': review.id} for review in reviews]     
+    }
+    return review_list
 
 def is_review_from_user(review_id, user_id):
     return None
