@@ -36,7 +36,11 @@ def get_all():
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
     user_applications = get_all_user_applications(user_id)
-    return make_response(user_applications, 200)
+    if len(user_applications['applications']) == 0:
+        return make_response('no content', 204)
+    else:
+        return make_response(jsonify(user_applications), 200)
+    
 
 # TODO connect to GraphDB to save full data from apps
 @applications_api_bp.route('', methods=['POST'])

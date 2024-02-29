@@ -70,7 +70,7 @@ def get_all_user_applications(user_id):
     application_list = {
         "applications": [{'application_data': app.json()} for app in applications]
     }
-    return jsonify(application_list)
+    return application_list
 
 def edit_application(application):
     return None
