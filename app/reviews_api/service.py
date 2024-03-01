@@ -1,9 +1,7 @@
 from app import db
 from app.models import Review
-from flask import jsonify
 import app.users_api.service as users_api_service
 import app.applications_api.service as applications_api_service
-from sqlalchemy.exc import IntegrityError
 
 
 def add_to_db_session(new_review_entity, user_entity, application_entity):
@@ -32,6 +30,14 @@ def save_review_in_sql_db(user_id, application_entity, review_data, commit = Fal
     else:
         return review_entity.json()    
 
+
+def delete_review(review_id):
+    review = get_review_by_id(review_id)
+    try:
+        db.session.delete(review)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
 # TODO
 def save_review_in_graph_db(review):
     # We should add NLTK and split the reviews

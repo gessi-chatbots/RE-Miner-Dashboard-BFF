@@ -4,7 +4,7 @@ from flask_login import UserMixin
 application_review_association = db.Table(
     'application_reviews',
     db.Column('application_name', db.String, db.ForeignKey('applications.name'), primary_key=True),
-    db.Column('review_id', db.String, db.ForeignKey('reviews.id'), primary_key=True)
+    db.Column('review_id', db.String, db.ForeignKey('reviews.id', ondelete='CASCADE'), primary_key=True)
 )
 
 class Application(db.Model):
