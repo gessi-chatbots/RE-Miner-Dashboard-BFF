@@ -183,6 +183,8 @@ def get_application(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
     validate_user(user_id)
     application_data = application_service.get_application(user_id, application_id)
+    if application_data is None:
+        return make_response(jsonify({'message': 'Application not found for the given user'}), 404)
     return make_response(application_data, 200)
 
 # -------------- Reviews --------------

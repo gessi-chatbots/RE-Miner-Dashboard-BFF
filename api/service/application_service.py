@@ -32,6 +32,8 @@ def get_application(user_id, application_id):
                 }
             }
             return application_data
+        else: 
+            return None
 
 def delete_application(user_id, application_id):
     user = User.query.get(user_id)
