@@ -71,8 +71,9 @@ def create_application(user_id, application_data):
     try:
         new_application = Application(id = application_id, name=application_name)
         db.session.add(new_application)
+        db.session.commit()
         review_service.process_application_reviews(user_id, 
-                                    application_name, 
+                                    application_id,
                                     application_data.get('reviews', []))
         return new_application
     except IntegrityError as e:

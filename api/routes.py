@@ -192,7 +192,7 @@ def get_application(user_id, application_id):
 @jwt_required()
 def create_review(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Create Review for User's {user_id} Application {application_id}")
-    validate_user()
+    validate_user(user_id)
     review_form = api_forms.ReviewForm(request.form)
     api_utils.validate_form(review_form)
     review = review_service.create_review(user_id, application_id, review_form.to_dict())
@@ -200,10 +200,12 @@ def create_review(user_id, application_id):
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews', methods=['GET'])
 @jwt_required()
-def get_reviews(user_id):
-    api_logger.info(f"[{datetime.now()}]: Get User {user_id} Reviews")
-    validate_user()    
-    reviews_data = review_service.get_reviews(user_id)
+def get_all_reviews(user_id, application_id):
+    api_logger.info(f"[{datetime.now()}]: Get User {user_id} Application {application_id} Reviews")
+    validate_user(user_id)    
+    reviews_data = review_service.get_reviews_by_user_application(user_id, application_id)
+    if reviews_data is None: 
+        return make_response(f'not found any reviews for user {user_id} and {application_id}', 404)
     if len(reviews_data['reviews']) == 0:
         return make_response('no content', 204)
     else:
@@ -211,10 +213,10 @@ def get_reviews(user_id):
     
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['GET'])
 @jwt_required()
-def get(user_id, application_id, review_id):
+def get_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
     validate_user(user_id)
-    if not review_service.is_review_from_user(review_id, user_id):
+    if not review_service.has_user_review(user_id, application_id, review_id):
         return make_response(jsonify(api_responses.responses['not_user_review']), 401)
     review_data = review_service.get_review(user_id, application_id, review_id)
     return make_response(jsonify(review_data), 200)
@@ -224,7 +226,7 @@ def get(user_id, application_id, review_id):
 def delete_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Delete Review {review_id}")
     validate_user(user_id)
-    if not review_service.is_review_from_user(user_id, application_id, review_id):
+    if not review_service.has_user_review(user_id, application_id, review_id):
         return make_response(jsonify(api_responses.responses['not_user_review']), 401)
-    review_service.delete_review(review_id)
+    review_service.delete_review(user_id, application_id, review_id)
     return make_response(jsonify(api_responses.responses['delete_review_success']), 204)

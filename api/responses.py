@@ -7,5 +7,6 @@ responses = {
     'edit_application_success': {'message': 'Application updated successfully'},
     'delete_application_success': {'message': 'Application has been deleted successfully'},
     'not_user_application': {'message': 'User does not have assigned the requested application'},
-    'not_user_review': {'message': 'User does not have assigned the requested review'}
+    'not_user_review': {'message': 'User does not have assigned the requested review'},
+    'delete_review_success': {'message': 'Review has been deleted successfully'},
 }
