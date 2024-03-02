@@ -7,4 +7,3 @@ def validate_form(form):
             for error in messages:
                 errors["errors"].append({"field": field, "message": error})
         return jsonify(errors), 400
-    

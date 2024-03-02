@@ -1,20 +1,52 @@
-from app import db
-from app.models import Application
 import uuid
-import app.users_api.service as users_api_service
-import app.reviews_api.service as review_api_service
+import api.service.user_service as user_service
+import api.service.review_service as review_service
+from api import db
+from api.models import Application, User
 from sqlalchemy.exc import IntegrityError
+
+def get_applications(user_id):
+    user = user_service.get_user_by_id(user_id)
+    applications = user.applications.all()
+    application_list = {
+        "applications": [{'application_data': app.json()} for app in applications]
+    }
+    return application_list
 
 def update_application(user_id, application_data):
     application_name = application_data['app_name']
-    review_api_service.process_application_reviews(user_id, 
+    review_service.process_application_reviews(user_id, 
                                                    application_name, 
                                                    application_data.get('reviews', []))
     return Application(name=application_name)
-   
+
+def get_application(user_id, application_id):
+    user = User.query.get(user_id)
+    if user:
+        application = user.applications.filter_by(id=application_id).first()
+        if application:
+            application_data = {
+                "application": {
+                    "application_data": application.json(),
+                    "reviews": [{"review": review.json()} for review in application.reviews]
+                }
+            }
+            return application_data
+
+def delete_application(user_id, application_id):
+    user = User.query.get(user_id)
+    if user:
+        application = user.applications.filter_by(id=application_id).first()
+        if application:
+            db.session.delete(application)
+            db.session.commit()
+            return True
+    return False
+
+
 def save_application_in_sql_db(user_id, application_data):
-    user = users_api_service.get_user_by_id(user_id)
-    new_application = create_new_application(user_id, application_data)
+    user = user_service.get_user_by_id(user_id)
+    new_application = create_application(user_id, application_data)
     user.applications.append(new_application)
     db.session.add(user)
     return new_application
@@ -31,13 +63,13 @@ def get_application_by_name(name):
 def get_application_by_id(id): 
     return db.session.query(Application).filter_by(id=id).one_or_none()
 
-def create_new_application(user_id, application_data):
+def create_application(user_id, application_data):
     application_id = str(uuid.uuid4())
     application_name = application_data['app_name']
     try:
         new_application = Application(id = application_id, name=application_name)
         db.session.add(new_application)
-        review_api_service.process_application_reviews(user_id, 
+        review_service.process_application_reviews(user_id, 
                                     application_name, 
                                     application_data.get('reviews', []))
         return new_application
@@ -56,38 +88,14 @@ def process_applications(user_id, applications):
         print(e)
         db.session.rollback()
 
-# TODO do it without user_id and use user
-def is_application_from_user(application_id, user_id):
-    user_entity = users_api_service.get_user_by_id(user_id)
+def is_application_from_user(user_id, application_id):
+    user_entity = user_service.get_user_by_id(user_id)
     if user_entity.applications:
         return application_id in [application.id for application in user_entity.applications]
     else: 
         return False
 
-def get_all_user_applications(user_id):
-    user = users_api_service.get_user_by_id(user_id)
-    applications = user.applications.all()
-    application_list = {
-        "applications": [{'application_data': app.json()} for app in applications]
-    }
-    return application_list
 
 def edit_application(application):
     return None
 
-def delete_application(application_id):
-    application_entity = get_application_by_id(application_id)
-    if application_entity:
-        db.session.delete(application_entity)
-        db.session.commit()
-    
-
-def get_application(application_id):
-    application_entity = get_application_by_id(application_id)
-    application_data = {
-        "application": {
-            "application_data": application_entity.json(),
-            "reviews": [{"review": review.json()} for review in application_entity.reviews]
-        }
-    }
-    return application_data

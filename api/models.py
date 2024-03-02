@@ -1,4 +1,4 @@
-from app import db
+from api import db
 from flask_login import UserMixin
 
 application_review_association = db.Table(

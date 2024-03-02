@@ -1,4 +1,4 @@
-from . import api_bp, api_logger
+from api import api_bp, api_logger
 from datetime import datetime
 from flask import request, jsonify, make_response, abort
 from flask_jwt_extended import (set_access_cookies, 
@@ -7,13 +7,13 @@ from flask_jwt_extended import (set_access_cookies,
                                 get_jwt_identity,
                                 unset_jwt_cookies)
 import json
-import app.api.forms as api_forms
-import app.api.utils as api_utils
-import app.api.authentication_service as authentication_service
-import app.api.user_service as user_service
-import app.api.review_service as review_service
-import app.api.application_service as application_service
-import app.api.responses as api_responses
+import api.forms as api_forms
+import api.utils as api_utils
+import api.service.authentication_service as authentication_service
+import api.service.user_service as user_service
+import api.service.review_service as review_service
+import api.service.application_service as application_service
+import api.responses as api_responses
 
 def validate_user(user_id):
     jwt_id = get_jwt_identity()
@@ -167,8 +167,8 @@ def create_review(user_id, application_id):
     validate_user()
     review_form = api_forms.ReviewForm(request.form)
     api_utils.validate_form(review_form)
-    review_service.create_review(user_id, application_id, review_form.to_dict())
-    return make_response(jsonify({"message":"created"}), 201)
+    review = review_service.create_review(user_id, application_id, review_form.to_dict())
+    return make_response(jsonify(review), 201)
 
 @api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews', methods=['GET'])
 @jwt_required()
