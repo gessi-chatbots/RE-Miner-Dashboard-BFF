@@ -41,6 +41,13 @@ user_review_association = db.Table(
     db.Column('review_id', db.String, db.ForeignKey('reviews.id', ondelete='CASCADE'), primary_key=True)
 )
 
+user_reviews_application_association = db.Table(
+    'user_application_reviews',
+    db.Column('user_id', db.String(36), db.ForeignKey('users.id'), primary_key=True),
+    db.Column('review_id', db.String, db.ForeignKey('reviews.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('application_id', db.String, db.ForeignKey('applications.id', ondelete='CASCADE'), primary_key=True)
+)
+
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
     id = db.Column(db.String(36), primary_key=True)
