@@ -6,12 +6,21 @@ from flask_jwt_extended import (set_access_cookies,
                                 jwt_required,
                                 get_jwt_identity,
                                 unset_jwt_cookies)
+import json
 import app.api.forms as api_forms
 import app.api.utils as api_utils
 import app.api.authentication_service as authentication_service
 import app.api.user_service as user_service
 import app.api.review_service as review_service
 import app.api.application_service as application_service
+import app.api.responses as api_responses
+
+def validate_user(user_id):
+    jwt_id = get_jwt_identity()
+    if jwt_id != user_id:
+        return make_response(jsonify({'Unauthorized': 'Not authorized user'}), 401)
+    if user_service.get_user_by_id(user_id) is None:
+        return make_response(jsonify(api_responses.responses['unauthorized']), 401)
 
 @api_bp.route('/ping', methods=['GET'])
 def ping():
@@ -52,7 +61,6 @@ def logout():
     return resp, 200
 
 # -------------- User --------------
-
 @api_bp.route("/users", methods=['POST'])
 def create_user():
     api_logger.info(f"[{datetime.now()}]: Register User")
@@ -67,29 +75,21 @@ def create_user():
     user = user_service.create_user(request.form)
     return make_response(jsonify({'user_data': user }), 201)
 
-@api_bp.route('/users/user/<string:id>', methods=['GET'])
+@api_bp.route('/users/user/<string:user_id>', methods=['GET'])
 @jwt_required()
-def get_user(id):
+def get_user(user_id):
     api_logger.info(f"[{datetime.now()}]: Get User {id}")
-    user_id = get_jwt_identity()
-    if id != user_id:
-        return make_response(jsonify({'Unauthorized': 'Cannot retrieve data from another user'}), 401)
-    user = user_service.get_user_by_id(id)
-    if user is None:
-        return make_response(jsonify({'Unauthorized': 'Invalid user'}), 401)
+    validate_user(user_id)
+    user = user_service.get_user_by_id(user_id)
     return make_response(jsonify({'user': user.json()}), 200)
 
 @api_bp.route('/users/user/<string:user_id>', methods=['PUT', 'POST'])
 @jwt_required()
 def update_user(user_id):
     api_logger.info(f"[{datetime.now()}]: Update User {user_id}")
+    validate_user(user_id)
     if request.form is None:
         return make_response(jsonify({'message': 'No User data provided'}), 400)
-    jtw_id = get_jwt_identity()
-    if jtw_id != user_id:
-        return make_response(jsonify({'Unauthorized': 'Cannot update data from another user'}), 401)
-    if user_service.get_user_by_id(user_id) is None:
-        return make_response(jsonify({'Unauthorized': 'Invalid user'}), 401)
     user = user_service.update_user(user_id, request.form)
     return make_response(jsonify({'user_data': user}), 200)
 
@@ -97,10 +97,106 @@ def update_user(user_id):
 @jwt_required()
 def delete(user_id):
     api_logger.info(f"[{datetime.now()}]: Delete User {id}")
-    jwt_id = get_jwt_identity()
-    if jwt_id != user_id:
-        return make_response(jsonify({'Unauthorized': 'Cannot update data from another user'}), 401)
-    if user_service.get_user_by_id(user_id) is None:
-        return make_response(jsonify({'Unauthorized': 'Invalid user'}), 401)
+    validate_user(user_id)
     user_service.delete_user(user_id)
     return make_response(jsonify({'message': 'user deleted'}), 200)
+
+# -------------- Applications --------------
+@api_bp.route('/users/user/<string:user_id>/applications', methods=['GET'])
+@jwt_required()
+def get_applications(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications")
+    validate_user(user_id)
+    user_applications = application_service.get_applications(user_id)
+    if len(user_applications['applications']) == 0:
+        return make_response('no content', 204)
+    else:
+        return make_response(jsonify(user_applications), 200)
+    
+@api_bp.route('/users/user/<string:user_id>/applications', methods=['POST'])
+@jwt_required()
+def create_applications(user_id):
+    api_logger.info(f"[{datetime.now()}]: Create Applications for user {user_id} request")
+    validate_user(user_id)
+    applications_list = []
+    if 'Content-Type' in request.headers and 'application/json' in request.headers['Content-Type']:
+        applications_list = request.get_json()
+    elif 'applications_file' in request.files:
+        applications_file = request.files['applications_file']
+        applications_list = json.load(applications_file)
+    else:
+        return make_response(jsonify({'error': 'Unsupported Media Type'}), 415)
+
+    if len(applications_list) == 0:
+        return make_response(jsonify(api_responses.responses['empty_applications_body']), 400)
+    
+    applications = application_service.process_applications(user_id, applications_list)
+    return make_response(jsonify(applications), 201)
+
+@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>', methods=['PUT', 'POST'])
+@jwt_required()
+def update_application(user_id, application_id):
+    api_logger.info(f"[{datetime.now()}]: 'Edit User {user_id} Application {application_id} data")
+    validate_user(user_id)
+    if not application_service.is_application_from_user(user_id, application_id):
+        return make_response(jsonify(api_responses.responses['not_user_application']), 401)
+    updated_application = application_service.edit_application(request.get_json())
+    return make_response(jsonify(updated_application), 200)
+
+@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>', methods=['DELETE'])
+@jwt_required()
+def delete_application(user_id, application_id):
+    api_logger.info(f"[{datetime.now()}]: 'Delete Application {application_id} data")
+    validate_user(user_id)
+    application_service.delete_application(user_id, application_id)
+    return make_response(jsonify(api_responses.responses['delete_application_success']), 204)
+
+@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>', methods=['GET'])
+@jwt_required()
+def get_application(user_id, application_id):
+    api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
+    validate_user(user_id)
+    application_data = application_service.get_application(user_id, application_id)
+    return make_response(application_data, 200)
+
+# -------------- Reviews --------------
+@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews', methods=['POST'])
+@jwt_required()
+def create_review(user_id, application_id):
+    api_logger.info(f"[{datetime.now()}]: Create Review for User's {user_id} Application {application_id}")
+    validate_user()
+    review_form = api_forms.ReviewForm(request.form)
+    api_utils.validate_form(review_form)
+    review_service.create_review(user_id, application_id, review_form.to_dict())
+    return make_response(jsonify({"message":"created"}), 201)
+
+@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews', methods=['GET'])
+@jwt_required()
+def get_reviews(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get User {user_id} Reviews")
+    validate_user()    
+    reviews_data = review_service.get_reviews(user_id)
+    if len(reviews_data['reviews']) == 0:
+        return make_response('no content', 204)
+    else:
+        return make_response(jsonify(reviews_data), 200)
+    
+@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews/review/<string:review_id>', methods=['GET'])
+@jwt_required()
+def get(user_id, application_id, review_id):
+    api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
+    validate_user(user_id)
+    if not review_service.is_review_from_user(review_id, user_id):
+        return make_response(jsonify(api_responses.responses['not_user_review']), 401)
+    review_data = review_service.get_review(user_id, application_id, review_id)
+    return make_response(jsonify(review_data), 200)
+
+@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews/review/<string:review_id>', methods=['DELETE'])
+@jwt_required()
+def delete(user_id, application_id, review_id):
+    api_logger.info(f"[{datetime.now()}]: Delete Review {review_id}")
+    validate_user(user_id)
+    if not review_service.is_review_from_user(user_id, application_id, review_id):
+        return make_response(jsonify(api_responses.responses['not_user_review']), 401)
+    review_service.delete_review(review_id)
+    return make_response(jsonify(api_responses.responses['delete_review_success']), 204)
