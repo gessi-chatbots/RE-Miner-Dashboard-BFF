@@ -114,7 +114,7 @@ def delete_user(user_id):
     return make_response(jsonify({'message': 'user deleted'}), 200)
 
 # -------------- Applications --------------
-@api_bp.route('/users/user/<string:user_id>/applications', methods=['GET'])
+@api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
 @jwt_required()
 def get_applications(user_id):
     api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications")
@@ -125,7 +125,7 @@ def get_applications(user_id):
     else:
         return make_response(jsonify(user_applications), 200)
     
-@api_bp.route('/users/user/<string:user_id>/applications', methods=['POST'])
+@api_bp.route('/users/<string:user_id>/applications', methods=['POST'])
 @jwt_required()
 def create_applications(user_id):
     api_logger.info(f"[{datetime.now()}]: Create Applications for user {user_id} request")
@@ -145,7 +145,7 @@ def create_applications(user_id):
     applications = application_service.process_applications(user_id, applications_list)
     return make_response(jsonify(applications), 201)
 
-@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>', methods=['PUT', 'POST'])
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['PUT', 'POST'])
 @jwt_required()
 def update_application(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: 'Edit User {user_id} Application {application_id} data")
@@ -155,7 +155,7 @@ def update_application(user_id, application_id):
     updated_application = application_service.edit_application(request.get_json())
     return make_response(jsonify(updated_application), 200)
 
-@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>', methods=['DELETE'])
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['DELETE'])
 @jwt_required()
 def delete_application(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: 'Delete Application {application_id} data")
@@ -163,7 +163,7 @@ def delete_application(user_id, application_id):
     application_service.delete_application(user_id, application_id)
     return make_response(jsonify(api_responses.responses['delete_application_success']), 204)
 
-@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>', methods=['GET'])
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['GET'])
 @jwt_required()
 def get_application(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
@@ -172,7 +172,7 @@ def get_application(user_id, application_id):
     return make_response(application_data, 200)
 
 # -------------- Reviews --------------
-@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews', methods=['POST'])
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews', methods=['POST'])
 @jwt_required()
 def create_review(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Create Review for User's {user_id} Application {application_id}")
@@ -182,7 +182,7 @@ def create_review(user_id, application_id):
     review = review_service.create_review(user_id, application_id, review_form.to_dict())
     return make_response(jsonify(review), 201)
 
-@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews', methods=['GET'])
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews', methods=['GET'])
 @jwt_required()
 def get_reviews(user_id):
     api_logger.info(f"[{datetime.now()}]: Get User {user_id} Reviews")
@@ -193,7 +193,7 @@ def get_reviews(user_id):
     else:
         return make_response(jsonify(reviews_data), 200)
     
-@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews/review/<string:review_id>', methods=['GET'])
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['GET'])
 @jwt_required()
 def get(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
@@ -203,7 +203,7 @@ def get(user_id, application_id, review_id):
     review_data = review_service.get_review(user_id, application_id, review_id)
     return make_response(jsonify(review_data), 200)
 
-@api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews/review/<string:review_id>', methods=['DELETE'])
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['DELETE'])
 @jwt_required()
 def delete_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Delete Review {review_id}")
