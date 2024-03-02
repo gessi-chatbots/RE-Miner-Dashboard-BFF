@@ -14,7 +14,7 @@ import api.service.user_service as user_service
 import api.service.review_service as review_service
 import api.service.application_service as application_service
 import api.responses as api_responses
-
+import api.exceptions as api_exceptions
 # API version
 api_name = 'api'
 api_version = 'v1'
@@ -73,21 +73,30 @@ def logout():
     return resp, 200
 
 # -------------- User --------------
+@api_bp.errorhandler(api_exceptions.UserNotFoundException)
+def handle_user_not_found(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+@api_bp.errorhandler(api_exceptions.UnknownException)
+def handle_user_not_found(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+@api_bp.errorhandler(api_exceptions.UserIntegrityException)
+def handle_integrity_error(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
 @api_bp.route("/users", methods=['POST'])
 def create_user():
     api_logger.info(f"[{datetime.now()}]: Register User")
     registration_form = api_forms.RegistrationForm(request.form)
-    if not registration_form.validate():
-        errors = {"errors": []}
-        for field, messages in registration_form.errors.items():
-            for error in messages:
-                errors["errors"].append({"field": field, "message": error})
-        return jsonify(errors), 400
-    
+    api_utils.validate_form(registration_form)
     user = user_service.create_user(request.form)
     return make_response(jsonify({'user_data': user }), 201)
 
-@api_bp.route('/users/user/<string:user_id>', methods=['GET'])
+@api_bp.route('/users/<string:user_id>', methods=['GET'])
 @jwt_required()
 def get_user(user_id):
     api_logger.info(f"[{datetime.now()}]: Get User {id}")
@@ -95,7 +104,7 @@ def get_user(user_id):
     user = user_service.get_user_by_id(user_id)
     return make_response(jsonify({'user': user.json()}), 200)
 
-@api_bp.route('/users/user/<string:user_id>', methods=['PUT', 'POST'])
+@api_bp.route('/users/<string:user_id>', methods=['PUT', 'POST'])
 @jwt_required()
 def update_user(user_id):
     api_logger.info(f"[{datetime.now()}]: Update User {user_id}")
@@ -105,7 +114,7 @@ def update_user(user_id):
     user = user_service.update_user(user_id, request.form)
     return make_response(jsonify({'user_data': user}), 200)
 
-@api_bp.route('/users/user/<string:user_id>', methods=['DELETE'])
+@api_bp.route('/users/<string:user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_user(user_id):
     api_logger.info(f"[{datetime.now()}]: Delete User {id}")
