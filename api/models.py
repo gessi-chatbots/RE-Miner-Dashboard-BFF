@@ -1,15 +1,16 @@
-from app import db
+from api import db
 from flask_login import UserMixin
 
 application_review_association = db.Table(
     'application_reviews',
-    db.Column('application_name', db.String, db.ForeignKey('applications.name'), primary_key=True),
+    db.Column('application_id', db.String, db.ForeignKey('applications.id'), primary_key=True),
     db.Column('review_id', db.String, db.ForeignKey('reviews.id', ondelete='CASCADE'), primary_key=True)
 )
 
 class Application(db.Model):
     __tablename__ = 'applications'
-    name = db.Column(db.String(150), primary_key=True, unique=True)
+    id = db.Column(db.String(36), primary_key=True)
+    name = db.Column(db.String(150), nullable = False)
     reviews = db.relationship(
         'Review', 
         secondary=application_review_association,
@@ -17,7 +18,9 @@ class Application(db.Model):
         lazy='dynamic')
     
     def json(self):
-        return {'name': self.name}
+        return {
+            'id': self.id,
+            'name': self.name}
       
 class Review(db.Model):
     __tablename__ = 'reviews'
@@ -29,7 +32,7 @@ class Review(db.Model):
 user_application_association = db.Table(
     'user_applications',
     db.Column('user_id', db.String(36), db.ForeignKey('users.id'), primary_key=True),
-    db.Column('application_name', db.String, db.ForeignKey('applications.name'), primary_key=True)
+    db.Column('application_id', db.String, db.ForeignKey('applications.id'), primary_key=True)
 )
 
 user_review_association = db.Table(

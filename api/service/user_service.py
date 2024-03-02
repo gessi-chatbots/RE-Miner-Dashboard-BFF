@@ -1,8 +1,13 @@
-from . import UserNotFound, UserIntegrityException
-from app import db
-from app.models import User
+import api.models as api_models
+import api.exceptions as api_exceptions
 import uuid
+from api import db
 from sqlalchemy.exc import IntegrityError
+
+def check_valid_user(email, password):
+    user = api_models.User.query.filter(api_models.User.email == email, 
+                                        api_models.User.password_hash == password).one_or_none()
+    return user is not None
 
 def create_user(form):
     try:
@@ -13,20 +18,20 @@ def create_user(form):
             'email': form.get('email'),
             'password_hash': form.get('password')
         }
-        new_user = User(**user_data)
+        new_user = api_models.User(**user_data)
         db.session.add(new_user)
         db.session.commit()
         return new_user.json()
     except IntegrityError as e:
         db.session.rollback()
-        raise UserIntegrityException
+        raise api_exceptions.UserIntegrityException
 
 def get_user_by_id(id):
-    user = User.query.filter_by(id=id).one_or_none()
+    user = api_models.User.query.filter_by(id=id).one_or_none()
     return user
 
 def get_user_by_email(email):
-    user = User.query.filter_by(email=email).one_or_none()
+    user = api_models.User.query.filter_by(email=email).one_or_none()
     return user
 
 def update_user(id, form):
@@ -48,5 +53,5 @@ def delete_user(id):
         db.session.rollback()
 
 def check_valid_user(email, password):
-    user = User.query.filter(User.email == email, User.password_hash == password).one_or_none()
+    user = api_models.User.query.filter(api_models.User.email == email, api_models.User.password_hash == password).one_or_none()
     return user is not None
