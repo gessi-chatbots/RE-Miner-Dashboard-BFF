@@ -7,9 +7,9 @@ import app.applications_api.service as applications_api_service
 def add_to_db_session(new_review_entity, user_entity, application_entity):
     db.session.add_all([user_entity, application_entity, new_review_entity])
 
-def create_review(user_id, application_name, review_data, commit=False):
+def create_review(user_id, application_id, review_data):
     user_entity = users_api_service.get_user_by_id(user_id)
-    application_entity = applications_api_service.get_application_by_name(application_name)
+    application_entity = applications_api_service.get_application_by_id(application_id)
     if not user_entity or not application_entity:
         return None
     mapped_review_data = {
@@ -23,13 +23,12 @@ def create_review(user_id, application_name, review_data, commit=False):
     return new_review_entity.json()
 
                 
-def save_review_in_sql_db(user_id, application_entity, review_data, commit = False):
+def save_review_in_sql_db(user_id, application_id, review_data):
     review_entity = get_review_by_id(review_data.get('reviewId', ''))
     if review_entity is None:
-        return create_review(user_id, application_entity, review_data, commit)
+        return create_review(user_id, application_id, review_data)
     else:
         return review_entity.json()    
-
 
 def delete_review(review_id):
     review = get_review_by_id(review_id)
@@ -44,8 +43,8 @@ def save_review_in_graph_db(review):
     # Expand the GraphDB
     return None
 
-def process_review(user_id, application_name, review_data, commit = False):
-    save_review_in_sql_db(user_id, application_name, review_data, commit)
+def process_review(user_id, application_id, review_data):
+    save_review_in_sql_db(user_id, application_id, review_data)
     # save_review_in_graph_db(review)
 
 def get_review_by_id(id):
@@ -61,7 +60,7 @@ def get_review_data(id):
 
 def process_application_reviews(user_id, application_name, reviews_data):
     for review in reviews_data:
-        process_review(user_id, application_name, review, commit=False)
+        process_review(user_id, application_name, review)
 
 def get_all_reviews_from_user(user_id):
     user = users_api_service.get_user_by_id(user_id)

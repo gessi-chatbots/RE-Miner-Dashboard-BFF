@@ -63,43 +63,43 @@ def create_applications():
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
     
-    process_applications(user_id, applications_list)
-    return make_response(jsonify(responses['create_applications_success']), 201)
+    applications = process_applications(user_id, applications_list)
+    return make_response(jsonify(applications), 201)
 
 # TODO connect to GraphDB to edit data from apps
-@applications_api_bp.route('/application/<string:application_name>', methods=['PUT', 'POST'])
+@applications_api_bp.route('/application/<string:application_id>', methods=['PUT', 'POST'])
 @jwt_required()
-def update_application(application_name):
-    applications_api_logger.info(f"[{datetime.now()}]: 'Edit Application {application_name} data")
+def update_application(application_id):
+    applications_api_logger.info(f"[{datetime.now()}]: 'Edit Application {application_id} data")
     user_id = get_jwt_identity()
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
-    if not is_application_from_user(application_name, user_id):
+    if not is_application_from_user(application_id, user_id):
         return make_response(jsonify(responses['not_user_application']), 401)
     application_data = request.get_json()
     updated_application = edit_application(application_data)
     return make_response(jsonify(responses['edit_application_success'], updated_application), 200)
 
-@applications_api_bp.route('/application/<string:application_name>', methods=['DELETE'])
+@applications_api_bp.route('/application/<string:application_id>', methods=['DELETE'])
 @jwt_required()
-def delete_user_application(application_name):
-    applications_api_logger.info(f"[{datetime.now()}]: 'Delete Application {application_name} data")
+def delete_user_application(application_id):
+    applications_api_logger.info(f"[{datetime.now()}]: 'Delete Application {application_id} data")
     user_id = get_jwt_identity()
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
-    if not is_application_from_user(application_name, user_id):
+    if not is_application_from_user(application_id, user_id):
         return make_response(jsonify(responses['not_user_application']), 401)
-    delete_application(application_name)
+    delete_application(application_id)
     return make_response(jsonify(responses['delete_application_success']), 204)
 
-@applications_api_bp.route('/application/<string:application_name>', methods=['GET'])
+@applications_api_bp.route('/application/<string:application_id>', methods=['GET'])
 @jwt_required()
-def get_user_application(application_name):
-    applications_api_logger.info(f"[{datetime.now()}]: Get Application {application_name} data")
+def get_user_application(application_id):
+    applications_api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
     user_id = get_jwt_identity()
     if get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
-    if not is_application_from_user(application_name, user_id):
+    if not is_application_from_user(application_id, user_id):
         return make_response(jsonify(responses['not_user_application']), 401)
-    application_data = get_application(application_name)
+    application_data = get_application(application_id)
     return make_response(application_data, 200)

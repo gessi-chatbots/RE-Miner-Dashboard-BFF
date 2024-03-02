@@ -22,10 +22,10 @@ def ping():
     reviews_api_logger.info(f"[{datetime.now()}]: Ping Reviews API")
     return make_response(jsonify(responses['ping']), 200)
 
-@reviews_api_bp.route('/<string:application_name>', methods=['POST'])
+@reviews_api_bp.route('/<string:application_id>', methods=['POST'])
 @jwt_required()
-def create_review(application_name):
-    reviews_api_logger.info(f"[{datetime.now()}]: Create Review for application {application_name}")
+def create_review(application_id):
+    reviews_api_logger.info(f"[{datetime.now()}]: Create Review for application {application_id}")
     user_id = get_jwt_identity()
     if users_api_service.get_user_by_id(user_id) is None:
         return make_response(jsonify(responses['unauthorized']), 401)
@@ -36,9 +36,8 @@ def create_review(application_name):
             for error in messages:
                 errors["errors"].append({"field": field, "message": error})
         return jsonify(errors), 400
-    if application_name is None: 
-        return make_response('no application name in query params', 400)
-    reviews_api_service.process_review(user_id, application_name, review_form.to_dict(), commit=True)
+
+    reviews_api_service.process_review(user_id, application_id, review_form.to_dict())
     return make_response(jsonify({"message":"created"}), 201)
 
 @reviews_api_bp.route('', methods=['GET'])
