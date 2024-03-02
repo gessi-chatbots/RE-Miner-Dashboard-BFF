@@ -30,9 +30,14 @@ api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.lo
 def validate_user(user_id):
     jwt_id = get_jwt_identity()
     if jwt_id != user_id:
-        return make_response(jsonify({'Unauthorized': 'Not authorized user'}), 401)
+        raise api_exceptions.UnauthorizedUserException
     if user_service.get_user_by_id(user_id) is None:
-        return make_response(jsonify(api_responses.responses['unauthorized']), 401)
+        return api_exceptions.UnauthorizedUserException
+
+@api_bp.errorhandler(api_exceptions.UnauthorizedUserException)
+def handle_unauthorized_user(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
 
 @api_bp.route('/ping', methods=['GET'])
 def ping():
@@ -99,7 +104,7 @@ def create_user():
 @api_bp.route('/users/<string:user_id>', methods=['GET'])
 @jwt_required()
 def get_user(user_id):
-    api_logger.info(f"[{datetime.now()}]: Get User {id}")
+    api_logger.info(f"[{datetime.now()}]: Get User {user_id}")
     validate_user(user_id)
     user = user_service.get_user_by_id(user_id)
     return make_response(jsonify({'user': user.json()}), 200)
