@@ -1,15 +1,14 @@
-from app import db
-from app.api.models import User, Application, Review
-import app.users_api.service as users_api_service
-import app.applications_api.service as applications_api_service
-
+from api import db
+from api.models import User, Review
+import api.service.user_service as user_service
+import api.service.application_service as application_service
 
 def add_to_db_session(new_review_entity, user_entity, application_entity):
     db.session.add_all([user_entity, application_entity, new_review_entity])
 
 def save_review(user_id, application_id, review_data):
-    user_entity = users_api_service.get_user_by_id(user_id)
-    application_entity = applications_api_service.get_application_by_id(application_id)
+    user_entity = user_service.get_user_by_id(user_id)
+    application_entity = application_service.get_application_by_id(application_id)
     if not user_entity or not application_entity:
         return None
     mapped_review_data = {
@@ -70,7 +69,7 @@ def process_application_reviews(user_id, application_name, reviews_data):
         create_review(user_id, application_name, review)
 
 def get_reviews(user_id):
-    user = users_api_service.get_user_by_id(user_id)
+    user = user_service.get_user_by_id(user_id)
     reviews = user.reviews.all()
     review_list = {
         "reviews" : [{'reviewId': review.id} for review in reviews]     

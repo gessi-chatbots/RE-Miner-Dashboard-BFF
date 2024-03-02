@@ -1,11 +1,11 @@
-from api import api_bp, api_logger
 from datetime import datetime
-from flask import request, jsonify, make_response, abort
+from flask import request, jsonify, make_response, abort, Blueprint
 from flask_jwt_extended import (set_access_cookies, 
                                 set_refresh_cookies, 
                                 jwt_required,
                                 get_jwt_identity,
                                 unset_jwt_cookies)
+import logging
 import json
 import api.forms as api_forms
 import api.utils as api_utils
@@ -14,6 +14,18 @@ import api.service.user_service as user_service
 import api.service.review_service as review_service
 import api.service.application_service as application_service
 import api.responses as api_responses
+
+# API version
+api_name = 'api'
+api_version = 'v1'
+
+# API Blueprint
+api_bp = Blueprint('api_bp', __name__)
+
+# API Logger configuration
+api_logger = logging.getLogger('api')
+api_logger.setLevel(logging.DEBUG)
+api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 
 def validate_user(user_id):
     jwt_id = get_jwt_identity()
@@ -95,7 +107,7 @@ def update_user(user_id):
 
 @api_bp.route('/users/user/<string:user_id>', methods=['DELETE'])
 @jwt_required()
-def delete(user_id):
+def delete_user(user_id):
     api_logger.info(f"[{datetime.now()}]: Delete User {id}")
     validate_user(user_id)
     user_service.delete_user(user_id)
@@ -193,7 +205,7 @@ def get(user_id, application_id, review_id):
 
 @api_bp.route('/users/user/<string:user_id>/applications/<string:application_id>/reviews/review/<string:review_id>', methods=['DELETE'])
 @jwt_required()
-def delete(user_id, application_id, review_id):
+def delete_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Delete Review {review_id}")
     validate_user(user_id)
     if not review_service.is_review_from_user(user_id, application_id, review_id):
