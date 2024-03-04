@@ -26,3 +26,6 @@ class UnauthorizedUserException(Exception):
     code = 401
     message = "Not an authorized user for doing that action"
 
+class ReviewNotFromUserException(Exception):
+    code = 401
+    message = "Not an user review"

@@ -5,17 +5,20 @@ import api.service.user_service as user_service
 import api.service.application_service as application_service
 import api.exceptions as api_exceptions
 
+def validate_user_and_application(user_entity, application_entity):
+    if not user_entity:
+        raise api_exceptions.UserNotFoundException
+    elif not application_entity:
+        raise api_exceptions.ApplicationNotFoundException
+    
+
 def add_to_db_session(new_review_entity, user_entity, application_entity):
     db.session.add_all([user_entity, application_entity, new_review_entity])
 
 def save_review(user_id, application_id, review_data):
     user_entity = user_service.get_user_by_id(user_id)
     application_entity = application_service.get_application_by_id(application_id)
-
-    if not user_entity:
-        raise api_exceptions.UserNotFoundException
-    elif not application_entity:
-        raise api_exceptions.ApplicationNotFoundException
+    validate_user_and_application(user_entity, application_entity)
     
     mapped_review_data = {
         "id": review_data.get('reviewId', ''),
@@ -40,7 +43,7 @@ def save_review_in_sql_db(user_id, application_id, review_data):
     if not has_user_review(user_id, application_id, review_data.get('reviewId', '')):
         return save_review(user_id, application_id, review_data)
     else:
-        return None # TODO define what to do if already exists   
+        return api_exceptions.ReviewNotFromUserException
 
 def delete_review(user_id, application_id, review_id):
     try:
@@ -110,6 +113,9 @@ def get_review(user_id, application_id, review_id):
         raise api_exceptions.ReviewNotFoundException
 
 def get_reviews_by_user_application(user_id, application_id):
+    user_entity = user_service.get_user_by_id(user_id)
+    application_entity = application_service.get_application_by_id(application_id)
+    validate_user_and_application(user_entity, application_entity)
     query = select(user_reviews_application_association.c.review_id).where(
         (user_reviews_application_association.c.user_id == user_id) &
         (user_reviews_application_association.c.application_id == application_id)
