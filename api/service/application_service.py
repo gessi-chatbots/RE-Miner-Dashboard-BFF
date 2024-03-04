@@ -1,6 +1,7 @@
 import uuid
 import api.service.user_service as user_service
 import api.service.review_service as review_service
+import api.exceptions as api_exceptions
 from api import db
 from api.models import Application, User
 from sqlalchemy.exc import IntegrityError
@@ -43,8 +44,10 @@ def delete_application(user_id, application_id):
             db.session.delete(application)
             db.session.commit()
             return True
-    return False
-
+        else:
+            raise api_exceptions.ApplicationNotFoundException
+    else: 
+        raise api_exceptions.UserNotFoundException
 
 def save_application_in_sql_db(user_id, application_data):
     user = user_service.get_user_by_id(user_id)

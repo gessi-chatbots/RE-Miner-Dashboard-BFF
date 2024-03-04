@@ -128,6 +128,11 @@ def delete_user(user_id):
     return make_response(jsonify({'message': 'user deleted'}), 200)
 
 # -------------- Applications --------------
+@api_bp.errorhandler(api_exceptions.ApplicationNotFoundException)
+def handle_application_not_found(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
 @jwt_required()
 def get_applications(user_id):
