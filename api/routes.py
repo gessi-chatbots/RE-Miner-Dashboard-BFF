@@ -136,7 +136,7 @@ def delete_user(user_id):
     api_logger.info(f"[{datetime.now()}]: Delete User {id}")
     validate_user(user_id)
     user_service.delete_user(user_id)
-    return make_response(jsonify({'message': 'user deleted'}), 200)
+    return make_response(jsonify({'message': 'user deleted'}), 204)
 
 # -------------- Applications --------------
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])

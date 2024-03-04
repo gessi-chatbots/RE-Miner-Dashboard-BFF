@@ -3,7 +3,7 @@ from flask_login import UserMixin
 
 application_review_association = db.Table(
     'application_reviews',
-    db.Column('application_id', db.String, db.ForeignKey('applications.id'), primary_key=True),
+    db.Column('application_id', db.String, db.ForeignKey('applications.id', ondelete='CASCADE'), primary_key=True),
     db.Column('review_id', db.String, db.ForeignKey('reviews.id', ondelete='CASCADE'), primary_key=True)
 )
 
@@ -16,7 +16,7 @@ class Application(db.Model):
         secondary=application_review_association,
         backref=db.backref('applications', lazy='dynamic'),
         lazy='dynamic',
-        cascade='all, delete-orphan'
+        cascade='all'
     )
     
     def json(self):
@@ -34,7 +34,7 @@ class Review(db.Model):
 user_application_association = db.Table(
     'user_applications',
     db.Column('user_id', db.String(36), db.ForeignKey('users.id'), primary_key=True),
-    db.Column('application_id', db.String, db.ForeignKey('applications.id'), primary_key=True)
+    db.Column('application_id', db.String, db.ForeignKey('applications.id', ondelete='CASCADE'), primary_key=True)
 )
 
 user_review_association = db.Table(
@@ -61,14 +61,15 @@ class User(db.Model, UserMixin):
         'Application',
         secondary=user_application_association,
         backref=db.backref('users', lazy='dynamic'),
-        lazy='dynamic'    
+        lazy='dynamic',
     )
     reviews = db.relationship(
         'Review',
         secondary=user_review_association,
         backref=db.backref('users', lazy='dynamic'),
-        lazy='dynamic'
-    )
+        lazy='dynamic',
+        cascade='all'
+   )
     
     def json(self):
         return {

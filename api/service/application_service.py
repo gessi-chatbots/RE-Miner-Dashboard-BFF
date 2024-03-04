@@ -3,8 +3,9 @@ import api.service.user_service as user_service
 import api.service.review_service as review_service
 import api.exceptions as api_exceptions
 from api import db
-from api.models import Application, User
+from api.models import Application, User, user_reviews_application_association
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import delete
 
 def get_applications(user_id):
     user = user_service.get_user_by_id(user_id)
@@ -41,6 +42,12 @@ def delete_application(user_id, application_id):
     if user:
         application = user.applications.filter_by(id=application_id).first()
         if application:
+            db.session.execute(
+                delete(user_reviews_application_association).where(
+                    (user_reviews_application_association.c.user_id == user_id) &
+                    (user_reviews_application_association.c.application_id == application_id)
+                )
+            )
             db.session.delete(application)
             db.session.commit()
             return True
