@@ -3,6 +3,7 @@ from flask import Flask
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
 import os
+from tenacity import retry, stop_after_delay, wait_fixed
 
 # App configuration
 api = Flask(__name__)
@@ -36,8 +37,16 @@ api.register_blueprint(api_bp, url_prefix=f'/api/{api_version}')
 
 # Schema generation 
 # (it could be done via migration, but as we have a simple schema we hardcode it)
-from api.models import User
-from api.models import Application
-from api.models import Review
-with api.app_context():
-    db.create_all()
+@retry(stop=stop_after_delay(30), wait=wait_fixed(2))
+def connect_to_db():
+    from api.models import User
+    from api.models import Application
+    from api.models import Review
+    try:
+        with api.app_context():
+            db.create_all()
+            return True
+    except Exception as e:
+        raise
+
+connect_to_db()
