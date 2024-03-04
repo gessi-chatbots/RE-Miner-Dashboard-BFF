@@ -16,7 +16,7 @@ api.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 api_version = 'v1'
 
 # JWT Configuration
-api.config["JWT_COOKIE_SECURE"] = True
+api.config["JWT_COOKIE_SECURE"] = False
 api.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 api.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 api.config['JWT_ACCESS_COOKIE_PATH'] = f'/api/{api_version}'
