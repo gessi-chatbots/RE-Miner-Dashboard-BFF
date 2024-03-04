@@ -15,7 +15,9 @@ class Application(db.Model):
         'Review', 
         secondary=application_review_association,
         backref=db.backref('applications', lazy='dynamic'),
-        lazy='dynamic')
+        lazy='dynamic',
+        cascade='all, delete-orphan'
+    )
     
     def json(self):
         return {
