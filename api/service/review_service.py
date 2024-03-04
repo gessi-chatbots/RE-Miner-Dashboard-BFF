@@ -3,6 +3,7 @@ from api.models import User, Review, user_reviews_application_association
 from sqlalchemy import insert, select, delete
 import api.service.user_service as user_service
 import api.service.application_service as application_service
+import api.exceptions as api_exceptions
 
 def add_to_db_session(new_review_entity, user_entity, application_entity):
     db.session.add_all([user_entity, application_entity, new_review_entity])
@@ -11,9 +12,11 @@ def save_review(user_id, application_id, review_data):
     user_entity = user_service.get_user_by_id(user_id)
     application_entity = application_service.get_application_by_id(application_id)
 
-    if not user_entity or not application_entity:
-        return None # TODO raise exception application / user does not exist
-
+    if not user_entity:
+        raise api_exceptions.UserNotFoundException
+    elif not application_entity:
+        raise api_exceptions.ApplicationNotFoundException
+    
     mapped_review_data = {
         "id": review_data.get('reviewId', ''),
     }
@@ -37,10 +40,13 @@ def save_review_in_sql_db(user_id, application_id, review_data):
     if not has_user_review(user_id, application_id, review_data.get('reviewId', '')):
         return save_review(user_id, application_id, review_data)
     else:
-        return None    
+        return None # TODO define what to do if already exists   
 
 def delete_review(user_id, application_id, review_id):
     try:
+        review = get_review_by_id(review_id)
+        if not review:
+            raise api_exceptions.ReviewNotFoundException
         db.session.execute(
             delete(user_reviews_application_association).where(
                 (user_reviews_application_association.c.user_id == user_id) &
@@ -48,13 +54,8 @@ def delete_review(user_id, application_id, review_id):
                 (user_reviews_application_association.c.review_id == review_id)
             )
         )
-
-        review = get_review_by_id(review_id)
-        if review:
-            db.session.delete(get_review_by_id(review_id))
-        db.session.commit()
-            
-
+        db.session.delete(get_review_by_id(review_id))
+        db.session.commit()   
     except Exception as e:
         db.session.rollback()
 
@@ -94,7 +95,6 @@ def select_review(user_id, application_id, review_id):
         (user_reviews_application_association.c.user_id == user_id) &
         (user_reviews_application_association.c.application_id == application_id) &
         (user_reviews_application_association.c.review_id == review_id)
-        
     )
     result = db.session.execute(query).fetchone()
     return result
@@ -107,18 +107,15 @@ def get_review(user_id, application_id, review_id):
                     }
         return review_data
     else:
-        return None
+        raise api_exceptions.ReviewNotFoundException
 
 def get_reviews_by_user_application(user_id, application_id):
     query = select(user_reviews_application_association.c.review_id).where(
         (user_reviews_application_association.c.user_id == user_id) &
         (user_reviews_application_association.c.application_id == application_id)
     )
-    
     results = db.session.execute(query).fetchall()
-
     reviews_data = {"reviews": [{'reviewId': result[0]} for result in results]}
-    
     return reviews_data
 
 def has_user_review(user_id, application_id, review_id):
@@ -127,7 +124,5 @@ def has_user_review(user_id, application_id, review_id):
         (user_reviews_application_association.c.application_id == application_id) &
         (user_reviews_application_association.c.review_id == review_id)
     )
-    
     result = db.session.execute(query).fetchone()
-    
     return result is not None

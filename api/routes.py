@@ -39,6 +39,32 @@ def handle_unauthorized_user(exception):
     api_logger.error(exception)
     return make_response(jsonify({'message': exception.message}), exception.code)
 
+@api_bp.errorhandler(api_exceptions.ApplicationNotFoundException)
+def handle_application_not_found(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+@api_bp.errorhandler(api_exceptions.UserNotFoundException)
+def handle_user_not_found(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+@api_bp.errorhandler(api_exceptions.ReviewNotFoundException)
+def handle_review_not_found(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+
+@api_bp.errorhandler(api_exceptions.UnknownException)
+def handle_user_not_found(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+@api_bp.errorhandler(api_exceptions.UserIntegrityException)
+def handle_integrity_error(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
 @api_bp.route('/ping', methods=['GET'])
 def ping():
     api_logger.info(f"[{datetime.now()}]: Ping API") 
@@ -78,21 +104,6 @@ def logout():
     return resp, 200
 
 # -------------- User --------------
-@api_bp.errorhandler(api_exceptions.UserNotFoundException)
-def handle_user_not_found(exception):
-    api_logger.error(exception)
-    return make_response(jsonify({'message': exception.message}), exception.code)
-
-@api_bp.errorhandler(api_exceptions.UnknownException)
-def handle_user_not_found(exception):
-    api_logger.error(exception)
-    return make_response(jsonify({'message': exception.message}), exception.code)
-
-@api_bp.errorhandler(api_exceptions.UserIntegrityException)
-def handle_integrity_error(exception):
-    api_logger.error(exception)
-    return make_response(jsonify({'message': exception.message}), exception.code)
-
 @api_bp.route("/users", methods=['POST'])
 def create_user():
     api_logger.info(f"[{datetime.now()}]: Register User")
@@ -128,11 +139,6 @@ def delete_user(user_id):
     return make_response(jsonify({'message': 'user deleted'}), 200)
 
 # -------------- Applications --------------
-@api_bp.errorhandler(api_exceptions.ApplicationNotFoundException)
-def handle_application_not_found(exception):
-    api_logger.error(exception)
-    return make_response(jsonify({'message': exception.message}), exception.code)
-
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
 @jwt_required()
 def get_applications(user_id):
