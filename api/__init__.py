@@ -37,7 +37,7 @@ api.register_blueprint(api_bp, url_prefix=f'/api/{api_version}')
 
 # Schema generation 
 # (it could be done via migration, but as we have a simple schema we hardcode it)
-@retry(stop=stop_after_delay(30), wait=wait_fixed(2))
+@retry(stop=stop_after_delay(60), wait=wait_fixed(3))
 def connect_to_db():
     from api.models import User
     from api.models import Application
