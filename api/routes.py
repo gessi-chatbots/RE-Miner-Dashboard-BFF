@@ -142,10 +142,12 @@ def delete_user(user_id):
 @api_bp.route('/applications/directory', methods=['GET'])
 @jwt_required()
 def get_applications_from_directory():
+    api_logger.info(f"[{datetime.now()}]: Get all Applications from directory request")
     return None
 @api_bp.route('/applications/directory/<string:app_name>', methods=['GET'])
 @jwt_required()
-def get_application_data_from_directory():
+def get_application_data_from_directory(app_name):
+    api_logger.info(f"[{datetime.now()}]: Get Application {app_name} directory data request")
     return None
 
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
