@@ -2,6 +2,8 @@ import uuid
 import api.service.user_service as user_service
 import api.service.review_service as review_service
 import api.exceptions as api_exceptions
+import requests
+import json
 from api import db
 from api.models import Application, User, user_reviews_application_association
 from sqlalchemy.exc import IntegrityError
@@ -109,6 +111,12 @@ def is_application_from_user(user_id, application_id):
         return False
 
 
-def edit_application(application):
-    return None
+def get_applications_from_directory():
+    # TODO put url in .env
+    response = requests.get('http://127.0.0.1:3001/graph-db-api/applications/names')
+    if response.status_code == 200:
+        return response.json()
 
+def get_application_from_directory(app_name):
+    response = requests.post(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
+    return None
