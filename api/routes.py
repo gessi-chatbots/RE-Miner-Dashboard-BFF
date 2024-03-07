@@ -139,6 +139,15 @@ def delete_user(user_id):
     return make_response(jsonify({'message': 'user deleted'}), 204)
 
 # -------------- Applications --------------
+@api_bp.route('/applications/directory', methods=['GET'])
+@jwt_required()
+def get_applications_from_directory():
+    return None
+@api_bp.route('/applications/directory/<string:app_name>', methods=['GET'])
+@jwt_required()
+def get_application_data_from_directory():
+    return None
+
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
 @jwt_required()
 def get_applications(user_id):
