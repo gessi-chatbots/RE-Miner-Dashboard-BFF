@@ -110,13 +110,17 @@ def is_application_from_user(user_id, application_id):
     else: 
         return False
 
-
 def get_applications_from_directory():
     # TODO put url in .env
     response = requests.get('http://127.0.0.1:3001/graph-db-api/applications/names')
     if response.status_code == 200:
         return response.json()
+    # TODO handle 500
 
 def get_application_from_directory(app_name):
-    response = requests.post(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
-    return None
+    # TODO put url in .env
+    response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
+    if response.status_code == 200:
+        return response.json()
+    # TODO handle 500
+    
