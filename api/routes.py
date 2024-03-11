@@ -258,3 +258,13 @@ def delete_review(user_id, application_id, review_id):
         return make_response(jsonify(api_responses.responses['not_user_review']), 401)
     review_service.delete_review(user_id, application_id, review_id)
     return make_response(jsonify(api_responses.responses['delete_review_success']), 204)
+
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>/analyze', methods=['POST'])
+@jwt_required()
+def analyze_review(user_id, application_id, review_id):
+    api_logger.info(f"[{datetime.now()}]: Analyze Review {review_id} for User's {user_id} Application {application_id}")
+    validate_user(user_id)
+    analyze_form = api_forms.AnalyzeForm(request.form)
+    api_utils.validate_form(analyze_form)
+    review = review_service.analyze_review(user_id, application_id, review_id)
+    return make_response(jsonify(review), 201)

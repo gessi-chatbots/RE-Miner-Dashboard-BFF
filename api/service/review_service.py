@@ -4,6 +4,8 @@ from sqlalchemy import insert, select, delete
 import api.service.user_service as user_service
 import api.service.application_service as application_service
 import api.exceptions as api_exceptions
+import requests
+import nltk
 
 def validate_user_and_application(user_entity, application_entity):
     if not user_entity:
@@ -84,8 +86,16 @@ def create_review(user_id, application_id, review_data):
     # save_review_in_graph_db(review)
     return review
 
+def analyze_review(user_id, application_id, review_id, feature_model, sentiment_model):
+    review = get_review(user_id, application_id, review_id)
+    analyze_review(review. feature_model, sentiment_model)
+
+    # save_review_in_graph_db(review)
+    return review
+
 def get_review_by_id(id):
     review = Review.query.filter_by(id=id).one_or_none()
+
     return review
 
             
@@ -93,14 +103,26 @@ def process_application_reviews(user_id, application_name, reviews_data):
     for review in reviews_data:
         create_review(user_id, application_name, review)
 
-def select_review(user_id, application_id, review_id): 
+def get_user_application_review_from_sql(user_id, application_id, review_id): 
     query = select(user_reviews_application_association).where(
         (user_reviews_application_association.c.user_id == user_id) &
         (user_reviews_application_association.c.application_id == application_id) &
         (user_reviews_application_association.c.review_id == review_id)
     )
     result = db.session.execute(query).fetchone()
+    if result is None:
+        raise api_exceptions.ReviewNotFromUserException
     return result
+
+def get_review_from_knowledge_repository(review_id): 
+    response = requests.get(f'http://127.0.0.1:3001/graph-db-api/reviews/{review_id}')
+    if response.status_code == 200:
+        return response.json()
+    
+def select_review(user_id, application_id, review_id): 
+    get_user_application_review_from_sql(user_id, application_id, review_id)
+    review = get_review_from_knowledge_repository(review_id)
+    return review
 
 def get_review(user_id, application_id, review_id):
     result = select_review(user_id, application_id, review_id)
@@ -132,3 +154,18 @@ def has_user_review(user_id, application_id, review_id):
     )
     result = db.session.execute(query).fetchone()
     return result is not None
+
+
+def analyze_review(review, feature_model, sentiment_model):
+    sentences = nltk.sent_tokenize(review)
+    for sentence in sentences:
+        analyze_sentence_review(sentence, feature_model, sentiment_model)
+
+def analyze_sentence_review(sentence, feature_model, sentiment_model):
+    if sentiment_model != "" and feature_model != "":
+        endpoint_url = requests.post(f'http://127.0.0.1:3000/analyze-reviews?model_emotion={sentiment_model}&model_features={feature_model}')
+    elif sentiment_model != "" and feature_model == "":
+        endpoint_url = f"http://127.0.0.1:3000/analyze-reviews?model_emotion={sentiment_model}"
+    elif feature_model != None and sentiment_model == "":
+        endpoint_url = f"http://127.0.0.1:3000/analyze-reviews?model_features={feature_model}"
+        
