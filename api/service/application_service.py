@@ -65,38 +65,44 @@ def save_application_in_sql_db(user_id, application_data):
     db.session.add(user)
     return new_application
     
-
-def process_application(user_id, application_data):
-    processed_application = save_application_in_sql_db(user_id, application_data)
-    # save_application_in_graph_db(application)
-    return processed_application.json()
-
 def get_application_by_name(name): 
     return db.session.query(Application).filter_by(name=name).one_or_none()
 
 def get_application_by_id(id): 
     return db.session.query(Application).filter_by(id=id).one_or_none()
 
-def create_application(user_id, application_data):
+def insert_application_in_sql_db(user_id, application_data):
     application_id = str(uuid.uuid4())
     application_name = application_data['app_name']
     try:
         new_application = Application(id = application_id, name=application_name)
         db.session.add(new_application)
         db.session.commit()
-        review_service.process_application_reviews(user_id, 
-                                    application_id,
-                                    application_data.get('reviews', []))
+        review_service.process_application_reviews(user_id, application_id, application_data.get('reviews', []))
         return new_application
     except IntegrityError as e:
-        db.session.rollback()
+        raise api_exceptions.UserIntegrityException()
+
+def send_applications_to_kg(applications):
+    headers = {'Content-type': 'application/json'}
+    response = requests.post(
+        'http://127.0.0.1:3001/graph-db-api/applications',
+        headers=headers,
+        json=(applications if isinstance(applications, list) else [applications])
+    )
+    if response.status_code == 201:
+        return response.json
+    else:
+        raise api_exceptions.KGRException()
+
 
 
 def process_applications(user_id, applications):
+    send_applications_to_kg(applications)
     processed_applications = []
     try:
         for application_data in applications:
-            processed_applications.append(process_application(user_id, application_data))
+            processed_applications.append(insert_application_in_sql_db(user_id, application_data))
         db.session.commit()
         return processed_applications
     except IntegrityError as e:

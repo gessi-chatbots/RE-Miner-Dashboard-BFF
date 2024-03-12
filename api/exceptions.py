@@ -29,3 +29,7 @@ class UnauthorizedUserException(Exception):
 class ReviewNotFromUserException(Exception):
     code = 401
     message = "Not an user review"
+
+class KGRException(Exception):
+    code = 500
+    message = "There was an error in the Knowledge Graph Repository"

@@ -15,6 +15,7 @@ import api.service.review_service as review_service
 import api.service.application_service as application_service
 import api.responses as api_responses
 import api.exceptions as api_exceptions
+
 # API version
 api_name = 'api'
 api_version = 'v1'
@@ -54,6 +55,10 @@ def handle_review_not_found(exception):
     api_logger.error(exception)
     return make_response(jsonify({'message': exception.message}), exception.code)
 
+@api_bp.errorhandler(api_exceptions.KGRException)
+def handle_review_not_found(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
 
 @api_bp.errorhandler(api_exceptions.UnknownException)
 def handle_user_not_found(exception):
