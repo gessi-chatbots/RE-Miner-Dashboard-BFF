@@ -185,7 +185,7 @@ def get_reviews_by_user_application(user_id, application_id):
         (user_reviews_application_association.c.application_id == application_id)
     )
     results = db.session.execute(query).fetchall()
-    reviews_data = {"reviews": [{'reviewId': result[0]} for result in results]}
+    reviews_data = [{'reviewId': result[0]} for result in results]
     return reviews_data
 
 def has_user_review(user_id, application_id, review_id):

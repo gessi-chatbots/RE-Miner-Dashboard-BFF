@@ -261,9 +261,9 @@ def get_all_reviews(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get User {user_id} Application {application_id} Reviews")
     validate_user(user_id)  
     reviews_data = review_service.get_reviews_by_user_application(user_id, application_id)
-    if reviews_data is None: 
+    if reviews_data is None:
         return make_response(f'not found any reviews for user {user_id} and {application_id}', 404)
-    if len(reviews_data['reviews']) == 0:
+    if len(reviews_data) == 0:
         return make_response('no content', 204)
     else:
         return make_response(jsonify(reviews_data), 200)
