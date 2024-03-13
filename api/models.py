@@ -27,6 +27,7 @@ class Application(db.Model):
 class Review(db.Model):
     __tablename__ = 'reviews'
     id = db.Column(db.String(36), primary_key=True, unique=True)
+    review_id = db.Column(db.String(36))
 
     def json(self):
         return {'id': self.id}

@@ -33,3 +33,7 @@ class ReviewNotFromUserException(Exception):
 class KGRException(Exception):
     code = 500
     message = "There was an error in the Knowledge Graph Repository"
+
+class KGRConnectionException(Exception):
+    code = 503
+    message = "There was an error connecting to the Knowledge Graph Repository"

@@ -6,6 +6,7 @@ import api.service.application_service as application_service
 import api.exceptions as api_exceptions
 import requests
 import nltk
+import uuid
 
 def validate_user_and_application(user_entity, application_entity):
     if not user_entity:
@@ -23,7 +24,8 @@ def save_review(user_id, application_id, review_data):
     validate_user_and_application(user_entity, application_entity)
     
     mapped_review_data = {
-        "id": review_data.get('reviewId', ''),
+        "id": str(uuid.uuid4()),
+        "review_id": review_data.get('reviewId', '')
     }
 
     new_review_entity = Review(**mapped_review_data)
@@ -95,7 +97,6 @@ def analyze_review(user_id, application_id, review_id, feature_model, sentiment_
 
 def get_review_by_id(id):
     review = Review.query.filter_by(id=id).one_or_none()
-
     return review
 
             

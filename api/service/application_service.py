@@ -84,16 +84,19 @@ def insert_application_in_sql_db(user_id, application_data):
         raise api_exceptions.UserIntegrityException()
 
 def send_applications_to_kg(applications):
-    headers = {'Content-type': 'application/json'}
-    response = requests.post(
-        'http://127.0.0.1:3001/graph-db-api/applications',
-        headers=headers,
-        json=(applications if isinstance(applications, list) else [applications])
-    )
-    if response.status_code == 201:
-        return response.json
-    else:
-        raise api_exceptions.KGRException()
+    try:
+        headers = {'Content-type': 'application/json'}
+        response = requests.post(
+            'http://127.0.0.1:3001/graph-db-api/applications',
+            headers=headers,
+            json=(applications if isinstance(applications, list) else [applications])
+        )
+        if response.status_code == 201:
+            return response.json
+        else:
+            raise api_exceptions.KGRException()
+    except ConnectionError: 
+        raise api_exceptions.KGRConnectionException()
 
 
 
