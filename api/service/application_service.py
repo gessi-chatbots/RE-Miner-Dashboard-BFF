@@ -79,10 +79,13 @@ def insert_application_in_sql_db(user_id, application_data):
         db.session.add(new_application)
         db.session.commit()
         review_service.process_application_reviews(user_id, application_id, application_data.get('reviews', []))
-        return new_application
+        return {
+            "id": application_id,
+            "name": application_name
+        }
     except IntegrityError as e:
         raise api_exceptions.UserIntegrityException()
-
+    
 def send_applications_to_kg(applications):
     try:
         headers = {'Content-type': 'application/json'}
@@ -95,13 +98,11 @@ def send_applications_to_kg(applications):
             return response.json
         else:
             raise api_exceptions.KGRException()
-    except ConnectionError: 
-        raise api_exceptions.KGRConnectionException()
-
-
+    except requests.exceptions.ConnectionError as e: 
+        raise api_exceptions.KGRConnectionException(e)
 
 def process_applications(user_id, applications):
-    send_applications_to_kg(applications)
+    # send_applications_to_kg(applications)
     processed_applications = []
     try:
         for application_data in applications:
@@ -121,15 +122,21 @@ def is_application_from_user(user_id, application_id):
 
 def get_applications_from_directory():
     # TODO put url in .env
-    response = requests.get('http://127.0.0.1:3001/graph-db-api/applications/names')
-    if response.status_code == 200:
-        return response.json()
+    try:
+        response = requests.get('http://127.0.0.1:3001/graph-db-api/applications/names')
+        if response.status_code == 200:
+            return response.json()
+    except requests.exceptions.ConnectionError as e: 
+        raise api_exceptions.KGRConnectionException(e)
     # TODO handle 500
 
 def get_application_from_directory(app_name):
     # TODO put url in .env
-    response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
-    if response.status_code == 200:
-        return response.json()
+    try:
+        response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
+        if response.status_code == 200:
+            return response.json()
+    except requests.exceptions.ConnectionError as e: 
+        raise api_exceptions.KGRConnectionException(e)
     # TODO handle 500
     
