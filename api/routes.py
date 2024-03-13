@@ -148,6 +148,20 @@ def delete_user(user_id):
     user_service.delete_user(user_id)
     return make_response(jsonify({'message': 'user deleted'}), 204)
 
+# -------------- Analysis --------------
+@api_bp.route('/users/<string:user_id>/analyze', methods=['POST'])
+@jwt_required()
+def analyze_reviews(user_id):
+    api_logger.info(f"[{datetime.now()}]: Analyze Reviews")
+    validate_user(user_id)
+    if request.json is None:
+        return make_response(jsonify({'message': 'no body'}), 406)
+    reviews = request.json
+    review_service.validate_reviews(reviews)
+    review_service.analyze_reviews(reviews)
+    return make_response(jsonify({'message': 'reviews analyzed'}), 200)
+
+
 # -------------- Applications --------------
 @api_bp.route('/applications/directory', methods=['GET'])
 @jwt_required()

@@ -43,6 +43,12 @@ def save_review(user_id, application_id, review_data):
     db.session.commit()
     return new_review_entity.json()
 
+def validate_reviews(reviews):
+    return None
+
+def analyze_reviews(reviews):
+    return None
+
 def save_review_in_sql_db(user_id, application_id, review_data):
     if not has_user_review(user_id, application_id, review_data.get('reviewId', '')):
         return save_review(user_id, application_id, review_data)
