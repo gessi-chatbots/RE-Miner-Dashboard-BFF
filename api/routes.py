@@ -71,7 +71,7 @@ def handle_integrity_error(exception):
     return make_response(jsonify({'message': exception.message}), exception.code)
 
 @api_bp.errorhandler(api_exceptions.KGRConnectionException)
-def handle_integrity_error(exception):
+def handle_connection_error(exception):
     api_logger.error(exception)
     return make_response(jsonify({'message': exception.message}), exception.code)
 
