@@ -172,7 +172,7 @@ def get_applications(user_id):
     api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications")
     validate_user(user_id)
     user_applications = application_service.get_applications(user_id)
-    if len(user_applications['applications']) == 0:
+    if len(user_applications) == 0:
         return make_response('no content', 204)
     else:
         return make_response(jsonify(user_applications), 200)

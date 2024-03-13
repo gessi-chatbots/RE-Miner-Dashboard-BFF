@@ -12,9 +12,15 @@ from sqlalchemy import delete
 def get_applications(user_id):
     user = user_service.get_user_by_id(user_id)
     applications = user.applications.all()
-    application_list = {
-        "applications": [{'application_data': app.json()} for app in applications]
-    }
+    application_list = []
+    for app in applications:
+        application = {
+            'data': app.json(),
+            'reviews': []
+        }
+        for rev in app.reviews:
+            application['reviews'].append({'reviewId': rev.id})
+        application_list.append(application)
     return application_list
 
 def update_application(user_id, application_data):
@@ -57,7 +63,6 @@ def delete_application(user_id, application_id):
             raise api_exceptions.ApplicationNotFoundException
     else: 
         raise api_exceptions.UserNotFoundException
-
 
 def get_application_by_name(name): 
     return db.session.query(Application).filter_by(name=name).one_or_none()
@@ -103,7 +108,7 @@ def send_applications_to_kg(applications):
         raise api_exceptions.KGRConnectionException(e)
 
 def process_applications(user_id, applications):
-    # send_applications_to_kg(applications)
+    send_applications_to_kg(applications)
     processed_applications = []
     try:
         for application_data in applications:
@@ -132,9 +137,10 @@ def get_applications_from_directory():
     # TODO handle 500
 
 def get_application_from_directory(app_name):
+    app_name_sanitized = app_name.replace(" ", "_")
     # TODO put url in .env
     try:
-        response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
+        response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name_sanitized}')
         if response.status_code == 200:
             return response.json()
     except requests.exceptions.ConnectionError as e: 
