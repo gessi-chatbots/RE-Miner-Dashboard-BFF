@@ -75,6 +75,12 @@ def handle_connection_error(exception):
     api_logger.error(exception)
     return make_response(jsonify({'message': exception.message}), exception.code)
 
+@api_bp.errorhandler(api_exceptions.ReviewNotFromUserException)
+def handle_review_not_from_user_error(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+
 @api_bp.route('/ping', methods=['GET'])
 def ping():
     api_logger.info(f"[{datetime.now()}]: Ping API") 
@@ -157,8 +163,8 @@ def analyze_reviews(user_id):
     if request.json is None:
         return make_response(jsonify({'message': 'no body'}), 406)
     reviews = request.json
-    review_service.validate_reviews(reviews)
-    review_service.analyze_reviews(reviews)
+    review_service.validate_reviews(user_id, reviews)
+    review_service.analyze_reviews(user_id, reviews)
     return make_response(jsonify({'message': 'reviews analyzed'}), 200)
 
 

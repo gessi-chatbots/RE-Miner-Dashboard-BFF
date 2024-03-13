@@ -27,8 +27,10 @@ class UnauthorizedUserException(Exception):
     message = "Not an authorized user for doing that action"
 
 class ReviewNotFromUserException(Exception):
-    code = 401
-    message = "Not an user review"
+    def __init__(self, review_id):
+        self.review_id = review_id
+        self.code = 401
+        self.message = f"Review: {self.review_id}, does not belong to user"
 
 class KGRException(Exception):
     code = 500

@@ -43,10 +43,14 @@ def save_review(user_id, application_id, review_data):
     db.session.commit()
     return new_review_entity.json()
 
-def validate_reviews(reviews):
-    return None
+def validate_reviews(user_id, reviews):
+    user = user_service.get_user_by_id(user_id)
+    user_review_ids = {review.id for review in user.reviews} 
+    for review in reviews:
+        if review["reviewId"] not in user_review_ids:
+            raise api_exceptions.ReviewNotFromUserException(review["reviewId"])
 
-def analyze_reviews(reviews):
+def analyze_reviews(user_id, reviews):
     return None
 
 def save_review_in_sql_db(user_id, application_id, review_data):
