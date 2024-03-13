@@ -19,7 +19,7 @@ def get_applications(user_id):
             'reviews': []
         }
         for rev in app.reviews:
-            application['reviews'].append({'reviewId': rev.id})
+            application['reviews'].append({'reviewId': rev.review_id})
         application_list.append(application)
     return application_list
 

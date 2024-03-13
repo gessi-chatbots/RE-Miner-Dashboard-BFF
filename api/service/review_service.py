@@ -50,8 +50,39 @@ def validate_reviews(user_id, reviews):
         if review["reviewId"] not in user_review_ids:
             raise api_exceptions.ReviewNotFromUserException(review["reviewId"])
 
-def analyze_reviews(user_id, reviews):
+# TODO make kr service
+def get_reviews_from_knowledge_repository():
+    requests.get('http://127.0.0.1:3001/graph-db-api/reviews')
     return None
+
+def is_review_splitted(review):
+    return False
+
+def split_review(review):
+    sentences = nltk.sent_tokenize(review)
+
+
+def analyze_reviews(user_id, reviewsIds):
+    validate_reviews(user_id, reviewsIds)
+    kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
+    for kr_review in kr_review:
+        if not is_review_splitted(kr_review):
+            split_review(kr_review)
+        
+
+def analyze_review(review, feature_model, sentiment_model):
+    sentences = nltk.sent_tokenize(review)
+    for sentence in sentences:
+        analyze_sentence_review(sentence, feature_model, sentiment_model)
+
+def analyze_sentence_review(sentence, feature_model, sentiment_model):
+    if sentiment_model != "" and feature_model != "":
+        endpoint_url = requests.post(f'http://127.0.0.1:3000/analyze-reviews?model_emotion={sentiment_model}&model_features={feature_model}')
+    elif sentiment_model != "" and feature_model == "":
+        endpoint_url = f"http://127.0.0.1:3000/analyze-reviews?model_emotion={sentiment_model}"
+    elif feature_model != None and sentiment_model == "":
+        endpoint_url = f"http://127.0.0.1:3000/analyze-reviews?model_features={feature_model}"
+
 
 def save_review_in_sql_db(user_id, application_id, review_data):
     if not has_user_review(user_id, application_id, review_data.get('reviewId', '')):
@@ -167,16 +198,5 @@ def has_user_review(user_id, application_id, review_id):
     return result is not None
 
 
-def analyze_review(review, feature_model, sentiment_model):
-    sentences = nltk.sent_tokenize(review)
-    for sentence in sentences:
-        analyze_sentence_review(sentence, feature_model, sentiment_model)
 
-def analyze_sentence_review(sentence, feature_model, sentiment_model):
-    if sentiment_model != "" and feature_model != "":
-        endpoint_url = requests.post(f'http://127.0.0.1:3000/analyze-reviews?model_emotion={sentiment_model}&model_features={feature_model}')
-    elif sentiment_model != "" and feature_model == "":
-        endpoint_url = f"http://127.0.0.1:3000/analyze-reviews?model_emotion={sentiment_model}"
-    elif feature_model != None and sentiment_model == "":
-        endpoint_url = f"http://127.0.0.1:3000/analyze-reviews?model_features={feature_model}"
         
