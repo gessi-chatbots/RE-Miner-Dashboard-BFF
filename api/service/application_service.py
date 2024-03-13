@@ -58,19 +58,23 @@ def delete_application(user_id, application_id):
     else: 
         raise api_exceptions.UserNotFoundException
 
-def save_application_in_sql_db(user_id, application_data):
-    user = user_service.get_user_by_id(user_id)
-    new_application = create_application(user_id, application_data)
-    user.applications.append(new_application)
-    db.session.add(user)
-    return new_application
-    
+
 def get_application_by_name(name): 
     return db.session.query(Application).filter_by(name=name).one_or_none()
 
 def get_application_by_id(id): 
     return db.session.query(Application).filter_by(id=id).one_or_none()
 
+def save_application_in_sql_db(user_id, application_data):
+    user = user_service.get_user_by_id(user_id)
+    new_application = insert_application_in_sql_db(user_id, application_data)
+    user.applications.append(new_application)
+    db.session.add(user)
+    return {
+        "id": new_application.id,
+        "name": new_application.name
+    }
+    
 def insert_application_in_sql_db(user_id, application_data):
     application_id = str(uuid.uuid4())
     application_name = application_data['app_name']
@@ -79,10 +83,7 @@ def insert_application_in_sql_db(user_id, application_data):
         db.session.add(new_application)
         db.session.commit()
         review_service.process_application_reviews(user_id, application_id, application_data.get('reviews', []))
-        return {
-            "id": application_id,
-            "name": application_name
-        }
+        return new_application
     except IntegrityError as e:
         raise api_exceptions.UserIntegrityException()
     
@@ -106,7 +107,7 @@ def process_applications(user_id, applications):
     processed_applications = []
     try:
         for application_data in applications:
-            processed_applications.append(insert_application_in_sql_db(user_id, application_data))
+            processed_applications.append(save_application_in_sql_db(user_id, application_data))
         db.session.commit()
         return processed_applications
     except IntegrityError as e:
