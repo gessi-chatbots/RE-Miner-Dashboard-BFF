@@ -158,12 +158,23 @@ def delete_user(user_id):
 @api_bp.route('/users/<string:user_id>/analyze', methods=['POST'])
 @jwt_required()
 def analyze_reviews(user_id):
-    api_logger.info(f"[{datetime.now()}]: Analyze Reviews")
+    api_logger.info(f"[{datetime.now()}]: Analyze User {user_id} Reviews")
+    
+    if request.args('feature_extraction') is None and request.args('sentiment_extraction') is None:
+        return jsonify({"error": "You must select feature or sentiment extraction"}), 400
+    if request.args('feature_extraction') is not None:
+        feature_model = request.args.get('feature_model')
+        if feature_model is None: 
+            return jsonify({"error": "Feature extraction selected but no model requested"}), 400
+    if request.args('sentiment_extraction') is not None: 
+        sentiment_model = request.args.get('sentiment_model')
+        if sentiment_model is None: 
+            return jsonify({"error": "Sentiment extraction selected but no model requested"}), 400
     validate_user(user_id)
     if request.json is None:
         return make_response(jsonify({'message': 'no body'}), 406)
     reviews = request.json
-    review_service.analyze_reviews(user_id, reviews)
+    review_service.analyze_reviews(user_id, reviews, feature_model, sentiment_model)
     return make_response(jsonify({'message': 'reviews analyzed'}), 200)
 
 

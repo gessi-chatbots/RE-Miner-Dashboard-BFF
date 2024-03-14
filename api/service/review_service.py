@@ -1,12 +1,26 @@
 from api import db
 from api.models import User, Review, user_reviews_application_association
 from sqlalchemy import insert, select, delete
+from typing import List
 import api.service.user_service as user_service
 import api.service.application_service as application_service
 import api.exceptions as api_exceptions
 import requests
 import nltk
 import uuid
+
+
+class SentenceDTO:
+    def __init__(self, id: str, sentiment: str, feature: str, text: str = None):
+        self.id = id
+        self.sentiment = sentiment
+        self.feature = feature
+        self.text = text
+class ReviewResponseDTO:
+    def __init__(self, id: str, body: str, sentences: List[SentenceDTO]):
+        self.id = id
+        self.body = body
+        self.sentences = sentences
 
 def validate_user_and_application(user_entity, application_entity):
     if not user_entity:
@@ -43,37 +57,56 @@ def save_review(user_id, application_id, review_data):
     db.session.commit()
     return new_review_entity.json()
 
-def validate_reviews(user_id, reviews):
+def validate_reviews(user_id, id_dicts):
     user = user_service.get_user_by_id(user_id)
+    review_ids = [id_dict['reviewId'] for id_dict in id_dicts]
+    reviews = get_reviews_by_review_id(review_ids)
     user_review_ids = {review.id for review in user.reviews} 
     for review in reviews:
-        if review["reviewId"] not in user_review_ids:
+        if review.id not in user_review_ids:
             raise api_exceptions.ReviewNotFromUserException(review["reviewId"])
 
-# TODO make kr service
-def get_reviews_from_knowledge_repository():
-    requests.get('http://127.0.0.1:3001/graph-db-api/reviews')
-    return None
-
+# TODO make a kr service
+def get_reviews_from_knowledge_repository(reviews_json):
+    response = requests.get('http://127.0.0.1:3001/graph-db-api/reviews', json=reviews_json)
+    if response.status_code == 200:
+        review_response_dtos = []
+        for review_json in response.json():
+            id = review_json.get('reviewId')
+            body = review_json.get('review')
+            sentences_json = review_json.get('sentences')
+            if sentences_json is not None:
+                sentences = [SentenceDTO(**sentence) for sentence in sentences_json]
+            else:
+                sentences = []
+            review_response_dto = ReviewResponseDTO(id=id, body=body, sentences=sentences)
+            review_response_dtos.append(review_response_dto)
+        return review_response_dtos
+    # TODO handle other status codes
 def is_review_splitted(review):
-    return False
+    return review.sentences is not None and len(review.sentences) > 0
 
 def split_review(review):
-    sentences = nltk.sent_tokenize(review)
+    nltk.download('punkt')
+    sentences = nltk.sent_tokenize(review.body)
+    for index, sentence in enumerate(sentences):
+        sentence_id = f"{review.id}_{index}"
+        feature = None
+        sentiment = None
+        text = sentence
+        review.sentences.append(SentenceDTO(id=sentence_id, feature=feature, sentiment=sentiment, text=text))
 
+def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
+    return None
 
-def analyze_reviews(user_id, reviewsIds):
+def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
     validate_reviews(user_id, reviewsIds)
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
-    for kr_review in kr_review:
+    for kr_review in kr_reviews:
         if not is_review_splitted(kr_review):
             split_review(kr_review)
+    send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model)
         
-
-def analyze_review(review, feature_model, sentiment_model):
-    sentences = nltk.sent_tokenize(review)
-    for sentence in sentences:
-        analyze_sentence_review(sentence, feature_model, sentiment_model)
 
 def analyze_sentence_review(sentence, feature_model, sentiment_model):
     if sentiment_model != "" and feature_model != "":
@@ -129,17 +162,12 @@ def create_review(user_id, application_id, review_data):
     # save_review_in_graph_db(review)
     return review
 
-def analyze_review(user_id, application_id, review_id, feature_model, sentiment_model):
-    review = get_review(user_id, application_id, review_id)
-    analyze_review(review. feature_model, sentiment_model)
-
-    # save_review_in_graph_db(review)
-    return review
-
 def get_review_by_id(id):
     review = Review.query.filter_by(id=id).one_or_none()
     return review
-
+def get_reviews_by_review_id(review_ids):
+    reviews = Review.query.filter(Review.review_id.in_(review_ids)).all()
+    return reviews
             
 def process_application_reviews(user_id, application_name, reviews_data):
     for review in reviews_data:
