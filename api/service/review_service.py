@@ -26,16 +26,17 @@ class SentenceDTO:
         }
 
 class ReviewResponseDTO:
-    def __init__(self, id: str, app_identifier:str, body: str, sentences: List[SentenceDTO]):
-        self.id = id
-        self.app_identifier = app_identifier
-        self.body = body
+    def __init__(self, id: str, applicationId:str, review: str, sentences: List[SentenceDTO]):
+        self.reviewId = id
+        self.applicationId = applicationId
+        self.review = review
         self.sentences = sentences
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "body": self.body,
+            "reviewId": self.reviewId,
+            "applicationId": self.applicationId,
+            "review": self.review,
             "sentences": [sentence.to_dict() for sentence in self.sentences]
         }
 
@@ -89,7 +90,7 @@ def get_reviews_from_knowledge_repository(reviews_json):
     if response.status_code == 200:
         review_response_dtos = []
         for review_json in response.json():
-            app_identifier = review_json.get('applicationIdentifier')
+            app_identifier = review_json.get('applicationId')
             id = review_json.get('reviewId')
             body = review_json.get('review')
             sentences_json = review_json.get('sentences')
@@ -97,7 +98,7 @@ def get_reviews_from_knowledge_repository(reviews_json):
                 sentences = [SentenceDTO(**sentence) for sentence in sentences_json]
             else:
                 sentences = []
-            review_response_dto = ReviewResponseDTO(id=id, app_identifier=app_identifier, body=body, sentences=sentences)
+            review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, sentences=sentences)
             review_response_dtos.append(review_response_dto)
         return review_response_dtos
     # TODO handle other status codes
@@ -105,10 +106,10 @@ def is_review_splitted(review):
     return review.sentences is not None and len(review.sentences) > 0
 
 def split_review(review):
-    nltk.download('punkt')
-    sentences = nltk.sent_tokenize(review.body)
+
+    sentences = nltk.sent_tokenize(review.review)
     for index, sentence in enumerate(sentences):
-        sentence_id = f"{review.id}_{index}"
+        sentence_id = f"{review.reviewId}_{index}"
         feature = None
         sentiment = None
         text = sentence
@@ -136,8 +137,23 @@ def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
         if not is_review_splitted(kr_review):
             split_review(kr_review)
     analyzed_reviews = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model)
-    print(analyze_reviews)
+    send_reviews_to_kg(analyzed_reviews)
         
+def send_reviews_to_kg(reviews):
+    try:
+        headers = {'Content-type': 'application/json'}
+        response = requests.post(
+            'http://127.0.0.1:3001/graph-db-api/reviews',
+            headers=headers,
+            json=(reviews if isinstance(reviews, list) else [reviews])
+        )
+        if response.status_code == 201:
+            return response.json
+        else:
+            raise api_exceptions.KGRException()
+    except requests.exceptions.ConnectionError as e: 
+        raise api_exceptions.KGRConnectionException()
+
 
 def save_review_in_sql_db(user_id, application_id, review_data):
     if not has_user_review(user_id, application_id, review_data.get('reviewId', '')):
