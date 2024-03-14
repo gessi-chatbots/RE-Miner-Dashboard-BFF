@@ -6,6 +6,11 @@ class UnknownException(Exception):
     code = 500
     message = "Unexpected server error"
 
+class HUBException(Exception):
+    code = 500
+    message = "There was an error in the RE-Miner HUB"
+
+
 class UserNotFoundException(Exception):
     code = 404
     message = "User not found"

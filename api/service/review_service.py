@@ -8,7 +8,7 @@ import api.exceptions as api_exceptions
 import requests
 import nltk
 import uuid
-
+import json
 
 class SentenceDTO:
     def __init__(self, id: str, sentiment: str, feature: str, text: str = None):
@@ -16,11 +16,28 @@ class SentenceDTO:
         self.sentiment = sentiment
         self.feature = feature
         self.text = text
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "sentiment": self.sentiment,
+            "feature": self.feature,
+            "text": self.text
+        }
+
 class ReviewResponseDTO:
-    def __init__(self, id: str, body: str, sentences: List[SentenceDTO]):
+    def __init__(self, id: str, app_identifier:str, body: str, sentences: List[SentenceDTO]):
         self.id = id
+        self.app_identifier = app_identifier
         self.body = body
         self.sentences = sentences
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "body": self.body,
+            "sentences": [sentence.to_dict() for sentence in self.sentences]
+        }
 
 def validate_user_and_application(user_entity, application_entity):
     if not user_entity:
@@ -72,6 +89,7 @@ def get_reviews_from_knowledge_repository(reviews_json):
     if response.status_code == 200:
         review_response_dtos = []
         for review_json in response.json():
+            app_identifier = review_json.get('applicationIdentifier')
             id = review_json.get('reviewId')
             body = review_json.get('review')
             sentences_json = review_json.get('sentences')
@@ -79,7 +97,7 @@ def get_reviews_from_knowledge_repository(reviews_json):
                 sentences = [SentenceDTO(**sentence) for sentence in sentences_json]
             else:
                 sentences = []
-            review_response_dto = ReviewResponseDTO(id=id, body=body, sentences=sentences)
+            review_response_dto = ReviewResponseDTO(id=id, app_identifier=app_identifier, body=body, sentences=sentences)
             review_response_dtos.append(review_response_dto)
         return review_response_dtos
     # TODO handle other status codes
@@ -97,25 +115,29 @@ def split_review(review):
         review.sentences.append(SentenceDTO(id=sentence_id, feature=feature, sentiment=sentiment, text=text))
 
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
-    return None
-
+    endpoint_url = ""
+    if (sentiment_model is not None and sentiment_model != "") and (feature_model is not None and feature_model != ""):
+        endpoint_url = f'http://127.0.0.1:3000/analyze?sentiment_model={sentiment_model}&feature_model={feature_model}'
+    elif (sentiment_model is not None and sentiment_model != "") and (feature_model is None or feature_model == ""):
+        endpoint_url = f"http://127.0.0.1:3000/analyze?sentiment_model={sentiment_model}"
+    elif (feature_model is not None and feature_model != "") and (sentiment_model is None or sentiment_model == ""):
+        endpoint_url = f"http://127.0.0.1:3000/analyze?feature_model={feature_model}"
+    reviews_dict = [review.to_dict() for review in reviews]
+    response = requests.post(endpoint_url, json=json.dumps(reviews_dict))
+    if response.status_code == 200:
+        return json.loads(response.content)
+    else:
+        raise api_exceptions.HUBException()
+    
 def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
     validate_reviews(user_id, reviewsIds)
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
     for kr_review in kr_reviews:
         if not is_review_splitted(kr_review):
             split_review(kr_review)
-    send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model)
+    analyzed_reviews = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model)
+    print(analyze_reviews)
         
-
-def analyze_sentence_review(sentence, feature_model, sentiment_model):
-    if sentiment_model != "" and feature_model != "":
-        endpoint_url = requests.post(f'http://127.0.0.1:3000/analyze-reviews?model_emotion={sentiment_model}&model_features={feature_model}')
-    elif sentiment_model != "" and feature_model == "":
-        endpoint_url = f"http://127.0.0.1:3000/analyze-reviews?model_emotion={sentiment_model}"
-    elif feature_model != None and sentiment_model == "":
-        endpoint_url = f"http://127.0.0.1:3000/analyze-reviews?model_features={feature_model}"
-
 
 def save_review_in_sql_db(user_id, application_id, review_data):
     if not has_user_review(user_id, application_id, review_data.get('reviewId', '')):

@@ -159,17 +159,11 @@ def delete_user(user_id):
 @jwt_required()
 def analyze_reviews(user_id):
     api_logger.info(f"[{datetime.now()}]: Analyze User {user_id} Reviews")
-    
-    if request.args('feature_extraction') is None and request.args('sentiment_extraction') is None:
-        return jsonify({"error": "You must select feature or sentiment extraction"}), 400
-    if request.args('feature_extraction') is not None:
-        feature_model = request.args.get('feature_model')
-        if feature_model is None: 
-            return jsonify({"error": "Feature extraction selected but no model requested"}), 400
-    if request.args('sentiment_extraction') is not None: 
-        sentiment_model = request.args.get('sentiment_model')
-        if sentiment_model is None: 
-            return jsonify({"error": "Sentiment extraction selected but no model requested"}), 400
+    if not request.args \
+            or ('sentiment_model' not in request.args.keys() and 'feature_model' not in request.args.keys()):
+                return "Lacking model and textual data in proper tag.", 400
+    feature_model = request.args.get('feature_model')
+    sentiment_model = request.args.get('sentiment_model')
     validate_user(user_id)
     if request.json is None:
         return make_response(jsonify({'message': 'no body'}), 406)
