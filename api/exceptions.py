@@ -1,7 +1,3 @@
-class ReviewNotFound(Exception):
-    code = 404
-    message = "Review not found"
-
 class UnknownException(Exception):
     code = 500
     message = "Unexpected server error"
@@ -20,8 +16,10 @@ class ApplicationNotFoundException(Exception):
     message = "Application not found"
 
 class ReviewNotFoundException(Exception):
-    code = 404
-    message = "Application not found"
+    def __init__(self, review_id):
+        self.review_id = review_id
+        self.code = 404
+        self.message = f"Review: {self.review_id}, does not exist"
 
 class UserIntegrityException(Exception):
     code = 400
@@ -32,10 +30,11 @@ class UnauthorizedUserException(Exception):
     message = "Not an authorized user for doing that action"
 
 class ReviewNotFromUserException(Exception):
-    def __init__(self, review_id):
+    def __init__(self, review_id, user_id):
         self.review_id = review_id
         self.code = 401
-        self.message = f"Review: {self.review_id}, does not belong to user"
+        self.user_id = user_id
+        self.message = f"Review: {self.review_id}, does not belong to User {user_id}"
 
 class KGRException(Exception):
     code = 500

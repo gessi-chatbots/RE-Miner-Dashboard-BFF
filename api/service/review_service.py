@@ -188,9 +188,8 @@ def save_review_in_sql_db(user_id, application_id, review_data):
 
 def delete_review(user_id, application_id, review_id):
     try:
-        review = get_review_by_id(review_id)
-        if not review:
-            raise api_exceptions.ReviewNotFoundException
+        review = get_review_by_review_id(review_id)
+        get_user_application_review_from_sql(user_id, application_id, review.id)
         db.session.execute(
             delete(user_reviews_application_association).where(
                 (user_reviews_application_association.c.user_id == user_id) &
@@ -198,8 +197,8 @@ def delete_review(user_id, application_id, review_id):
                 (user_reviews_application_association.c.review_id == review_id)
             )
         )
-        db.session.delete(get_review_by_id(review_id))
-        db.session.commit()   
+        db.session.delete(review)
+        db.session.commit()
     except Exception as e:
         db.session.rollback()
 
@@ -232,6 +231,8 @@ def get_review_by_id(id):
 
 def get_review_by_review_id(review_id):
     review = Review.query.filter_by(review_id=review_id).one_or_none()
+    if review is None:
+        raise api_exceptions.ReviewNotFoundException(review_id)
     return review
 
 def get_reviews_by_review_id(review_ids):
@@ -243,7 +244,6 @@ def process_application_reviews(user_id, application_name, reviews_data):
         create_review(user_id, application_name, review)
 
 def get_user_application_review_from_sql(user_id, application_id, review_id):
-    
     query = select(user_reviews_application_association).where(
         (user_reviews_application_association.c.user_id == user_id) &
         (user_reviews_application_association.c.application_id == application_id) &
@@ -251,7 +251,7 @@ def get_user_application_review_from_sql(user_id, application_id, review_id):
     )
     result = db.session.execute(query).fetchone()
     if result is None:
-        raise api_exceptions.ReviewNotFromUserException
+        raise api_exceptions.ReviewNotFromUserException(review_id, user_id)
     return result
 
 def get_review(user_id, application_id, review_id):

@@ -286,8 +286,6 @@ def get_review(user_id, application_id, review_id):
 def delete_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Delete Review {review_id}")
     validate_user(user_id)
-    if not review_service.has_user_review(user_id, application_id, review_id):
-        return make_response(jsonify(api_responses.responses['not_user_review']), 401)
     review_service.delete_review(user_id, application_id, review_id)
     return make_response(jsonify(api_responses.responses['delete_review_success']), 204)
 
