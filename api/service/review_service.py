@@ -85,38 +85,59 @@ def validate_reviews(user_id, id_dicts):
             raise api_exceptions.ReviewNotFromUserException(review["reviewId"])
 
 # TODO make a kr service
-def get_reviews_from_knowledge_repository(reviews_json):
+def get_reviews_from_knowledge_repository(reviews):
     try:
+        reviews_json = []
+        if not isinstance(reviews, list):
+            reviews_json.append(reviews)
+        else:
+            reviews_json = reviews
         response = requests.get('http://127.0.0.1:3001/graph-db-api/reviews', json=reviews_json)
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
-                app_identifier = review_json.get('applicationId')
-                id = review_json.get('reviewId')
-                body = review_json.get('review')
-                sentences_json = review_json.get('sentences')
-                if sentences_json is not None:
-                    sentences = [SentenceDTO(**sentence) for sentence in sentences_json]
-                else:
-                    sentences = []
-                review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, sentences=sentences)
-                review_response_dtos.append(review_response_dto)
+                review_response_dtos.append(extract_review_dto_from_json(review_json))
             return review_response_dtos
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException()
-
+    
+def extract_review_dto_from_json(review_json):
+    app_identifier = review_json.get('applicationId')
+    id = review_json.get('reviewId')
+    body = review_json.get('review')
+    sentences_json = review_json.get('sentences')
+    if sentences_json is not None:
+        sentences = [SentenceDTO(**sentence) for sentence in sentences_json]
+    else:
+        sentences = []
+    review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, sentences=sentences)
+    return review_response_dto
 
 def is_review_splitted(review):
     return review.sentences is not None and len(review.sentences) > 0
 
-def split_review(review):
-    sentences = nltk.sent_tokenize(review.review)
+def check_review_splitting(review):
+    if not is_review_splitted(review):
+        extend_and_split_review(review)  
+    else:
+        add_sentences_to_review(review)
+
+def extend_and_split_review(review):
+    sentences = split_review(review.review)
     for index, sentence in enumerate(sentences):
         sentence_id = f"{review.reviewId}_{index}"
         feature = None
         sentiment = None
         text = sentence
         review.sentences.append(SentenceDTO(id=sentence_id, feature=feature, sentiment=sentiment, text=text))
+
+def split_review(review_text):
+    return nltk.sent_tokenize(review_text)
+
+def add_sentences_to_review(review):
+    sentences = split_review(review.review)
+    for index, sentence in enumerate(sentences):
+        review.sentences[index].text = sentence
 
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
     endpoint_url = ""
@@ -137,15 +158,12 @@ def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
     validate_reviews(user_id, reviewsIds)
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
     for kr_review in kr_reviews:
-        if not is_review_splitted(kr_review):
-            split_review(kr_review)  
-        else: 
-            sentences = nltk.sent_tokenize(kr_review.review)
-            for index, sentence in enumerate(sentences):
-                  kr_review.sentences[index].text = sentence
+        check_review_splitting(kr_review)
     analyzed_reviews = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model)
     send_reviews_to_kg(analyzed_reviews)
-        
+
+
+
 def send_reviews_to_kg(reviews):
     try:
         headers = {'Content-type': 'application/json'}
@@ -210,6 +228,12 @@ def create_review(user_id, application_id, review_data):
 def get_review_by_id(id):
     review = Review.query.filter_by(id=id).one_or_none()
     return review
+
+
+def get_review_by_review_id(review_id):
+    review = Review.query.filter_by(review_id=review_id).one_or_none()
+    return review
+
 def get_reviews_by_review_id(review_ids):
     reviews = Review.query.filter(Review.review_id.in_(review_ids)).all()
     return reviews
@@ -218,7 +242,8 @@ def process_application_reviews(user_id, application_name, reviews_data):
     for review in reviews_data:
         create_review(user_id, application_name, review)
 
-def get_user_application_review_from_sql(user_id, application_id, review_id): 
+def get_user_application_review_from_sql(user_id, application_id, review_id):
+    
     query = select(user_reviews_application_association).where(
         (user_reviews_application_association.c.user_id == user_id) &
         (user_reviews_application_association.c.application_id == application_id) &
@@ -229,25 +254,14 @@ def get_user_application_review_from_sql(user_id, application_id, review_id):
         raise api_exceptions.ReviewNotFromUserException
     return result
 
-def get_review_from_knowledge_repository(review_id): 
-    response = requests.get(f'http://127.0.0.1:3001/graph-db-api/reviews/{review_id}')
-    if response.status_code == 200:
-        return response.json()
-    
-def select_review(user_id, application_id, review_id): 
-    get_user_application_review_from_sql(user_id, application_id, review_id)
-    review = get_review_from_knowledge_repository(review_id)
+def get_review(user_id, application_id, review_id):
+    review = get_review_by_review_id(review_id)
+    get_user_application_review_from_sql(user_id, application_id, review.id)
+    reviews = get_reviews_from_knowledge_repository({"reviewId": review_id})
+    review = reviews[0]
+
     return review
 
-def get_review(user_id, application_id, review_id):
-    result = select_review(user_id, application_id, review_id)
-    if result:
-        review_data = {"review": 
-                        {"id": result[1]}
-                    }
-        return review_data
-    else:
-        raise api_exceptions.ReviewNotFoundException
 
 def get_reviews_by_user_application(user_id, application_id):
     user_entity = user_service.get_user_by_id(user_id)

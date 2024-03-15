@@ -278,10 +278,8 @@ def get_all_reviews(user_id, application_id):
 def get_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
     validate_user(user_id)
-    if not review_service.has_user_review(user_id, application_id, review_id):
-        return make_response(jsonify(api_responses.responses['not_user_review']), 401)
     review_data = review_service.get_review(user_id, application_id, review_id)
-    return make_response(jsonify(review_data), 200)
+    return make_response(jsonify(review_data.to_dict()), 200)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['DELETE'])
 @jwt_required()

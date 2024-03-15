@@ -18,9 +18,8 @@ def get_applications(user_id):
             'data': app.json(),
             'reviews': []
         }
-        #TODO check
         for rev in app.reviews:
-            application['reviews'].append({'reviewId': rev.review_id})
+            application['reviews'].append(rev.json())
         application_list.append(application)
     return application_list
 
