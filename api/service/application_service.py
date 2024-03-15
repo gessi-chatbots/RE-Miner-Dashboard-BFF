@@ -160,7 +160,7 @@ def get_application_from_directory(app_name):
 def add_applications_from_directory_to_user(user_id, app_list):
     for app in app_list:
         try:
-            app_name = app['name']
+            app_name = app['app_name']
             response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
             if response.status_code == 200:
                 app_data = response.json()
