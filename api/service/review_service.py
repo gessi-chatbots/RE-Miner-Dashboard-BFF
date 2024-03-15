@@ -86,22 +86,26 @@ def validate_reviews(user_id, id_dicts):
 
 # TODO make a kr service
 def get_reviews_from_knowledge_repository(reviews_json):
-    response = requests.get('http://127.0.0.1:3001/graph-db-api/reviews', json=reviews_json)
-    if response.status_code == 200:
-        review_response_dtos = []
-        for review_json in response.json():
-            app_identifier = review_json.get('applicationId')
-            id = review_json.get('reviewId')
-            body = review_json.get('review')
-            sentences_json = review_json.get('sentences')
-            if sentences_json is not None:
-                sentences = [SentenceDTO(**sentence) for sentence in sentences_json]
-            else:
-                sentences = []
-            review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, sentences=sentences)
-            review_response_dtos.append(review_response_dto)
-        return review_response_dtos
-    # TODO handle other status codes
+    try:
+        response = requests.get('http://127.0.0.1:3001/graph-db-api/reviews', json=reviews_json)
+        if response.status_code == 200:
+            review_response_dtos = []
+            for review_json in response.json():
+                app_identifier = review_json.get('applicationId')
+                id = review_json.get('reviewId')
+                body = review_json.get('review')
+                sentences_json = review_json.get('sentences')
+                if sentences_json is not None:
+                    sentences = [SentenceDTO(**sentence) for sentence in sentences_json]
+                else:
+                    sentences = []
+                review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, sentences=sentences)
+                review_response_dtos.append(review_response_dto)
+            return review_response_dtos
+    except requests.exceptions.ConnectionError as e: 
+        raise api_exceptions.KGRConnectionException()
+
+
 def is_review_splitted(review):
     return review.sentences is not None and len(review.sentences) > 0
 
