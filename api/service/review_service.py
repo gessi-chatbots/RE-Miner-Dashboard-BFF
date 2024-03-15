@@ -50,14 +50,14 @@ def validate_user_and_application(user_entity, application_entity):
 def add_to_db_session(new_review_entity, user_entity, application_entity):
     db.session.add_all([user_entity, application_entity, new_review_entity])
 
-def save_review(user_id, application_id, review_data):
+def save_review(user_id, application_id, review_id):
     user_entity = user_service.get_user_by_id(user_id)
     application_entity = application_service.get_application_by_id(application_id)
     validate_user_and_application(user_entity, application_entity)
     
     mapped_review_data = {
         "id": str(uuid.uuid4()),
-        "review_id": review_data.get('reviewId', '')
+        "review_id": review_id
     }
 
     new_review_entity = Review(**mapped_review_data)
@@ -181,8 +181,13 @@ def send_reviews_to_kg(reviews):
 
 
 def save_review_in_sql_db(user_id, application_id, review_data):
-    if not has_user_review(user_id, application_id, review_data.get('reviewId', '')):
-        return save_review(user_id, application_id, review_data)
+    review_id = ""
+    if 'review_id' not in review_data:
+        review_id = review_data
+    else: 
+        review_id =  review_data.get('reviewId', '')
+    if not has_user_review(user_id, application_id, review_id):
+        return save_review(user_id, application_id, review_id)
     else:
         return api_exceptions.ReviewNotFromUserException
 
@@ -259,9 +264,7 @@ def get_review(user_id, application_id, review_id):
     get_user_application_review_from_sql(user_id, application_id, review.id)
     reviews = get_reviews_from_knowledge_repository({"reviewId": review_id})
     review = reviews[0]
-
     return review
-
 
 def get_reviews_by_user_application(user_id, application_id):
     user_entity = user_service.get_user_by_id(user_id)

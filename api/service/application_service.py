@@ -82,10 +82,18 @@ def save_application_in_sql_db(user_id, application_data):
     
 def insert_application_in_sql_db(user_id, application_data):
     application_id = str(uuid.uuid4())
-    application_name = application_data['app_name']
+    application_name = ""
+    # TODO fix formats
+    if ('app_name' not in application_data and 'name' in application_data):
+        application_name = application_data['name']
+    if ('app_name' in application_data and 'name' not in application_data):        
+        application_name = application_data['app_name']
+
     try:
         new_application = Application(id = application_id, name=application_name)
         db.session.add(new_application)
+        user = user_service.get_user_by_id(user_id)
+        user.applications.append(new_application)
         db.session.commit()
         review_service.process_application_reviews(user_id, application_id, application_data.get('reviews', []))
         return new_application
@@ -143,7 +151,23 @@ def get_application_from_directory(app_name):
         response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name_sanitized}')
         if response.status_code == 200:
             return response.json()
+        else:
+            raise api_exceptions.KGRException()
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException(e)
+    # TODO handle 500
+    
+def add_applications_from_directory_to_user(user_id, app_list):
+    for app in app_list:
+        try:
+            app_name = app['name']
+            response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
+            if response.status_code == 200:
+                app_data = response.json()
+                insert_application_in_sql_db(user_id, app_data)
+            else:
+                raise api_exceptions.KGRException()
+        except requests.exceptions.ConnectionError as e: 
+            raise api_exceptions.KGRConnectionException(e)
     # TODO handle 500
     

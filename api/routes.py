@@ -183,12 +183,31 @@ def get_applications_from_directory():
     else:
         return make_response(directory_applications, 200)
 
+@api_bp.route('/applications/directory', methods=['POST'])
+@jwt_required()
+def add_application_data_from_directory():
+    api_logger.info(f"[{datetime.now()}]: Add applications from directory data request") 
+    if 'user_id' not in request.args:
+        return make_response({"message": "no user id was specified"}, 400)
+    user_id = request.args.get('user_id')
+    applications_list = []
+    if 'Content-Type' in request.headers and 'application/json' in request.headers['Content-Type']:
+        applications_list = request.get_json()
+        if not isinstance(applications_list, list): 
+            return make_response({"message": "You must specify a list"}, 400)
+        if len(applications_list) == 0:
+            return make_response({"message": "no application list specified in body"}, 400)
+    directory_application = application_service.add_applications_from_directory_to_user(user_id, applications_list)
+    return make_response(jsonify(directory_application), 200)
+
 @api_bp.route('/applications/directory/<string:app_name>', methods=['GET'])
 @jwt_required()
 def get_application_data_from_directory(app_name):
     api_logger.info(f"[{datetime.now()}]: Get Application {app_name} directory data request")
     directory_application = application_service.get_application_from_directory(app_name)
     return make_response(jsonify(directory_application), 200)
+
+
 
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
 @jwt_required()
