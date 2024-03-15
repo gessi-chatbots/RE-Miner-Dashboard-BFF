@@ -255,8 +255,12 @@ def get_reviews_by_user_application(user_id, application_id):
         (user_reviews_application_association.c.application_id == application_id)
     )
     results = db.session.execute(query).fetchall()
-    reviews_data = [{'reviewId': result[0]} for result in results]
-    return reviews_data
+    user_reviews = [result[0] for result in results]
+    reviews_ids = []
+    for user_review_id in user_reviews:
+        review = get_review_by_id(user_review_id)
+        reviews_ids.append(review.json())
+    return reviews_ids
 
 def has_user_review(user_id, application_id, review_id):
     query = user_reviews_application_association.select().where(

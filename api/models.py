@@ -30,7 +30,10 @@ class Review(db.Model):
     review_id = db.Column(db.String(36))
 
     def json(self):
-        return {'id': self.id}
+        return {
+            'id': self.id,
+                'reviewId': self.review_id
+                }
 
 user_application_association = db.Table(
     'user_applications',
