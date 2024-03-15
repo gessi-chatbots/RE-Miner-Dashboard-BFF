@@ -110,7 +110,6 @@ def is_review_splitted(review):
     return review.sentences is not None and len(review.sentences) > 0
 
 def split_review(review):
-
     sentences = nltk.sent_tokenize(review.review)
     for index, sentence in enumerate(sentences):
         sentence_id = f"{review.reviewId}_{index}"
@@ -139,7 +138,11 @@ def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
     for kr_review in kr_reviews:
         if not is_review_splitted(kr_review):
-            split_review(kr_review)
+            split_review(kr_review)  
+        else: 
+            sentences = nltk.sent_tokenize(kr_review.review)
+            for index, sentence in enumerate(sentences):
+                  kr_review.sentences[index].text = sentence
     analyzed_reviews = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model)
     send_reviews_to_kg(analyzed_reviews)
         
