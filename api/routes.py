@@ -80,6 +80,21 @@ def handle_review_not_from_user_error(exception):
     api_logger.error(exception)
     return make_response(jsonify({'message': exception.message}), exception.code)
 
+@api_bp.errorhandler(api_exceptions.KGRApplicationNotFoundException)
+def handle_kgr_app_not_found_exception(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+
+@api_bp.errorhandler(api_exceptions.KGRApplicationsNotFoundException)
+def handle_kgr_apps_not_found_exception(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
+
+@api_bp.errorhandler(api_exceptions.KGRReviewsNotFoundException)
+def handle_kgr_reviews_not_found_exception(exception):
+    api_logger.error(exception)
+    return make_response(jsonify({'message': exception.message}), exception.code)
 
 @api_bp.route('/ping', methods=['GET'])
 def ping():

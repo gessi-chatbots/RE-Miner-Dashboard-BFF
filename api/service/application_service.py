@@ -139,6 +139,8 @@ def get_applications_from_directory():
         response = requests.get('http://127.0.0.1:3001/graph-db-api/applications/names')
         if response.status_code == 200:
             return response.json()
+        elif response.status_code == 404:
+            raise api_exceptions.KGRApplicationsNotFoundException
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException(e)
     # TODO handle 500
@@ -150,8 +152,8 @@ def get_application_from_directory(app_name):
         response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name_sanitized}')
         if response.status_code == 200:
             return response.json()
-        else:
-            raise api_exceptions.KGRException()
+        elif response.status_code == 404:
+            raise api_exceptions.KGRApplicationNotFoundException()
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException(e)
     # TODO handle 500

@@ -11,6 +11,11 @@ class UserNotFoundException(Exception):
     code = 404
     message = "User not found"
 
+
+class KGRReviewsNotFoundException(Exception):
+    code = 404
+    message = "Not found any reviews in the KGR"
+
 class ApplicationNotFoundException(Exception):
     code = 404
     message = "Application not found"
@@ -43,3 +48,10 @@ class KGRException(Exception):
 class KGRConnectionException(Exception):
     code = 503
     message = "There was an error connecting to the Knowledge Graph Repository"
+class KGRApplicationNotFoundException(Exception):
+    code = 404
+    message = "The application does not exist in the Knowledge Graph"
+
+class KGRApplicationsNotFoundException(Exception):
+    code = 404
+    message = "No applications found in the Knowledge Graph"

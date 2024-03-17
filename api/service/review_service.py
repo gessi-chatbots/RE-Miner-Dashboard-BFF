@@ -10,6 +10,7 @@ import nltk
 import uuid
 import json
 
+
 class FeatureDTO:
     def __init__(self, id: str, feature: str):
         self.id = id
@@ -33,17 +34,17 @@ class SentimentDTO:
         }
 
 class SentenceDTO:
-    def __init__(self, id: str, sentiment: SentimentDTO, feature: FeatureDTO, text: str = None):
+    def __init__(self, id: str, sentimentData: SentimentDTO, featureData: FeatureDTO, text: str = None):
         self.id = id
-        self.sentiment = sentiment
-        self.feature = feature
+        self.sentimentData = sentimentData
+        self.featureData = featureData
         self.text = text
 
     def to_dict(self):
         return {
             "id": self.id,
-            "sentiment data": self.sentiment,
-            "feature data": self.feature,
+            "sentimentData": self.sentimentData.to_dict() if self.sentimentData is not None else None,
+            "featureData": self.featureData.to_dict() if self.featureData is not None else None,
             "text": self.text
         }
 
@@ -61,6 +62,7 @@ class ReviewResponseDTO:
             "review": self.review,
             "sentences": [sentence.to_dict() for sentence in self.sentences]
         }
+    
 
 def validate_user_and_application(user_entity, application_entity):
     if not user_entity:
@@ -120,6 +122,8 @@ def get_reviews_from_knowledge_repository(reviews):
             for review_json in response.json():
                 review_response_dtos.append(extract_review_dto_from_json(review_json))
             return review_response_dtos
+        elif response.status_code == 404:
+            raise api_exceptions.KGRReviewsNotFoundException
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException()
     
@@ -148,10 +152,8 @@ def extend_and_split_review(review):
     sentences = split_review(review.review)
     for index, sentence in enumerate(sentences):
         sentence_id = f"{review.reviewId}_{index}"
-        feature = None
-        sentiment = None
         text = sentence
-        review.sentences.append(SentenceDTO(id=sentence_id, feature=feature, sentiment=sentiment, text=text))
+        review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=text))
 
 def split_review(review_text):
     return nltk.sent_tokenize(review_text)
@@ -241,8 +243,8 @@ def save_review_in_graph_db(review):
     # Expand the GraphDB
     return None
 
-def create_review(user_id, application_id, review_data):
-    review = save_review_in_sql_db(user_id, application_id, review_data)
+def create_review(user_id, application_id, review_id):
+    review = save_review_in_sql_db(user_id, application_id, review_id)
     # save_review_in_graph_db(review)
     return review
 
@@ -263,7 +265,7 @@ def get_reviews_by_review_id(review_ids):
             
 def process_application_reviews(user_id, application_name, reviews_data):
     for review in reviews_data:
-        create_review(user_id, application_name, review)
+        create_review(user_id, application_name, review['reviewId']) #TODO handle exception: review does not have id
 
 def get_user_application_review_from_sql(user_id, application_id, review_id):
     query = select(user_reviews_application_association).where(
