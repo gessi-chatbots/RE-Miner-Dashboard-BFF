@@ -10,8 +10,30 @@ import nltk
 import uuid
 import json
 
+class FeatureDTO:
+    def __init__(self, id: str, feature: str):
+        self.id = id
+        self.feature = feature
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "feature": self.feature,
+        }
+
+class SentimentDTO:
+    def __init__(self, id: str, sentiment: str):
+        self.id = id
+        self.sentiment = sentiment
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "sentiment": self.sentiment,
+        }
+
 class SentenceDTO:
-    def __init__(self, id: str, sentiment: str, feature: str, text: str = None):
+    def __init__(self, id: str, sentiment: SentimentDTO, feature: FeatureDTO, text: str = None):
         self.id = id
         self.sentiment = sentiment
         self.feature = feature
@@ -20,8 +42,8 @@ class SentenceDTO:
     def to_dict(self):
         return {
             "id": self.id,
-            "sentiment": self.sentiment,
-            "feature": self.feature,
+            "sentiment data": self.sentiment,
+            "feature data": self.feature,
             "text": self.text
         }
 
@@ -183,7 +205,7 @@ def send_reviews_to_kg(reviews):
 def save_review_in_sql_db(user_id, application_id, review_data):
     review_id = ""
     if 'review_id' not in review_data:
-        review_id = review_data
+        review_id = review_data.get("reviewId", None)
     else: 
         review_id =  review_data.get('reviewId', '')
     if not has_user_review(user_id, application_id, review_id):

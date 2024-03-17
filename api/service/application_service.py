@@ -73,7 +73,6 @@ def get_application_by_id(id):
 def save_application_in_sql_db(user_id, application_data):
     user = user_service.get_user_by_id(user_id)
     new_application = insert_application_in_sql_db(user_id, application_data)
-    user.applications.append(new_application)
     db.session.add(user)
     return {
         "id": new_application.id,
@@ -88,7 +87,6 @@ def insert_application_in_sql_db(user_id, application_data):
         application_name = application_data['name']
     if ('app_name' in application_data and 'name' not in application_data):        
         application_name = application_data['app_name']
-
     try:
         new_application = Application(id = application_id, name=application_name)
         db.session.add(new_application)
@@ -124,8 +122,9 @@ def process_applications(user_id, applications):
         db.session.commit()
         return processed_applications
     except IntegrityError as e:
-        print(e)
         db.session.rollback()
+        raise api_exceptions.UnknownException
+
 
 def is_application_from_user(user_id, application_id):
     user_entity = user_service.get_user_by_id(user_id)
