@@ -202,12 +202,7 @@ def send_reviews_to_kg(reviews):
         raise api_exceptions.KGRConnectionException()
 
 
-def save_review_in_sql_db(user_id, application_id, review_data):
-    review_id = ""
-    if 'review_id' not in review_data:
-        review_id = review_data.get("reviewId", None)
-    else: 
-        review_id =  review_data.get('reviewId', '')
+def save_review_in_sql_db(user_id, application_id, review_id):
     if not has_user_review(user_id, application_id, review_id):
         return save_review(user_id, application_id, review_id)
     else:
