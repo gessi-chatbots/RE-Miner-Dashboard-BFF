@@ -103,7 +103,7 @@ def validate_reviews(user_id, id_dicts):
     user = user_service.get_user_by_id(user_id)
     review_ids = [id_dict['reviewId'] for id_dict in id_dicts]
     reviews = get_reviews_by_review_id(review_ids)
-    user_review_ids = {review.id for review in user.reviews} 
+    user_review_ids = {review.id for review in user.reviews}
     for review in reviews:
         if review.id not in user_review_ids:
             raise api_exceptions.ReviewNotFromUserException(review["reviewId"])
@@ -132,10 +132,21 @@ def extract_review_dto_from_json(review_json):
     id = review_json.get('reviewId')
     body = review_json.get('review')
     sentences_json = review_json.get('sentences')
+    sentences = []
     if sentences_json is not None:
-        sentences = [SentenceDTO(**sentence) for sentence in sentences_json]
-    else:
-        sentences = []
+        for sentence_json in sentences_json:
+            sentence = SentenceDTO(id=sentence_json.get('id'), sentimentData=None, featureData=None)
+            if 'sentimentData' in sentence_json:
+                sentimentData = sentence_json.get('sentimentData', None)
+                if sentimentData is not None:
+                    sentimentDTO = SentimentDTO(id=sentimentData.get('id'), sentiment=sentimentData.get('sentiment'))
+                    sentence.sentimentData = sentimentDTO
+            if 'featureData' in sentence_json: 
+                featureData = sentence_json.get('featureData', None)
+                if featureData is not None:
+                    featureDTO = FeatureDTO(id=featureData.get('id'), feature=featureData.get('feature'))
+                    sentence.featureData = featureDTO
+            sentences.append(sentence)
     review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, sentences=sentences)
     return review_response_dto
 
@@ -160,8 +171,13 @@ def split_review(review_text):
 
 def add_sentences_to_review(review):
     sentences = split_review(review.review)
-    for index, sentence in enumerate(sentences):
-        review.sentences[index].text = sentence
+    try:
+        if len(review.sentences) > 0:
+            for index, sentence in enumerate(sentences):
+                review.sentences[index].text = sentence
+    except IndexError: # NLTK sometimes splits randomly
+            sentence_id = f"{review.reviewId}_{index + 1}"
+            review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=sentence))
 
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
     endpoint_url = ""
@@ -212,7 +228,7 @@ def save_review_in_sql_db(user_id, application_id, review_id):
 
 def delete_review(user_id, application_id, review_id):
     try:
-        review = get_review_by_review_id(review_id)
+        review = get_review_by_review_id(user_id, application_id, review_id)
         get_user_application_review_from_sql(user_id, application_id, review.id)
         db.session.execute(
             delete(user_reviews_application_association).where(
@@ -253,11 +269,27 @@ def get_review_by_id(id):
     return review
 
 
-def get_review_by_review_id(review_id):
-    review = Review.query.filter_by(review_id=review_id).one_or_none()
-    if review is None:
-        raise api_exceptions.ReviewNotFoundException(review_id)
-    return review
+def get_review_by_review_id(user_id, application_id, review_id):
+    reviews = Review.query.filter_by(review_id=review_id).all()
+    user = user_service.get_user_by_id(user_id)
+    application = user.applications.filter_by(id=application_id).first()
+    if application:
+        for review in reviews:
+            result = db.session.execute(
+                select(user_reviews_application_association).where(
+                    (user_reviews_application_association.c.user_id == user_id) &
+                    (user_reviews_application_association.c.application_id == application_id) &
+                    (user_reviews_application_association.c.review_id == review.id)
+                )
+            ).fetchone()
+            if result:
+                return review
+            else:
+                raise api_exceptions.ReviewNotFoundException(user_id=user_id, application_id=application_id, review_id=review_id)
+
+def get_review_from_knowledge_repository(review_id):
+    return None
+
 
 def get_reviews_by_review_id(review_ids):
     reviews = Review.query.filter(Review.review_id.in_(review_ids)).all()
@@ -279,10 +311,9 @@ def get_user_application_review_from_sql(user_id, application_id, review_id):
     return result
 
 def get_review(user_id, application_id, review_id):
-    review = get_review_by_review_id(review_id)
-    get_user_application_review_from_sql(user_id, application_id, review.id)
-    reviews = get_reviews_from_knowledge_repository({"reviewId": review_id})
-    review = reviews[0]
+    get_review_by_review_id(user_id, application_id, review_id)
+    review = get_reviews_from_knowledge_repository({"reviewId": review_id})[0]
+    add_sentences_to_review(review)
     return review
 
 def get_reviews_by_user_application(user_id, application_id):

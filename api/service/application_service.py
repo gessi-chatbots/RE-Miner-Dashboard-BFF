@@ -151,6 +151,7 @@ def get_application_from_directory(app_name):
     try:
         response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name_sanitized}')
         if response.status_code == 200:
+            # TODO parse json and add application id
             return response.json()
         elif response.status_code == 404:
             raise api_exceptions.KGRApplicationNotFoundException()

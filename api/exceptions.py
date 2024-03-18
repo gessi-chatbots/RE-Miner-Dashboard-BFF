@@ -21,10 +21,12 @@ class ApplicationNotFoundException(Exception):
     message = "Application not found"
 
 class ReviewNotFoundException(Exception):
-    def __init__(self, review_id):
+    def __init__(self, user_id, review_id, application_id):
         self.review_id = review_id
+        self.application_id = application_id
+        self.user_id = user_id
         self.code = 404
-        self.message = f"Review: {self.review_id}, does not exist"
+        self.message = f"Review: {self.review_id}, does not exist in Application {self.application_id} for User {self.user_id}"
 
 class UserIntegrityException(Exception):
     code = 400
