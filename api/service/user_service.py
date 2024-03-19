@@ -28,6 +28,8 @@ def create_user(form):
 
 def get_user_by_id(id):
     user = api_models.User.query.filter_by(id=id).one_or_none()
+    if user is None:
+        raise api_exceptions.UserNotFoundException()
     return user
 
 def get_user_by_email(email):
