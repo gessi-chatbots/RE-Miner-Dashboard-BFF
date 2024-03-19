@@ -1,6 +1,6 @@
 from api import db
 from api.models import User, Review, user_reviews_application_association
-from sqlalchemy import insert, select, delete
+from sqlalchemy import insert, select, delete, exc
 from typing import List
 import api.service.user_service as user_service
 import api.service.application_service as application_service
@@ -239,7 +239,7 @@ def delete_review(user_id, application_id, review_id):
         )
         db.session.delete(review)
         db.session.commit()
-    except Exception as e:
+    except exc.IntegrityError:
         db.session.rollback()
 
 
@@ -271,8 +271,12 @@ def get_review_by_id(id):
 
 def get_review_by_review_id(user_id, application_id, review_id):
     reviews = Review.query.filter_by(review_id=review_id).all()
+    if len(reviews) == 0 or reviews is None:
+        raise api_exceptions.ReviewNotFoundException(user_id=user_id, application_id=application_id, review_id=review_id)
     user = user_service.get_user_by_id(user_id)
     application = user.applications.filter_by(id=application_id).first()
+    if application is None:
+        raise api_exceptions.ApplicationNotFoundException()
     if application:
         for review in reviews:
             result = db.session.execute(
@@ -284,8 +288,7 @@ def get_review_by_review_id(user_id, application_id, review_id):
             ).fetchone()
             if result:
                 return review
-            else:
-                raise api_exceptions.ReviewNotFoundException(user_id=user_id, application_id=application_id, review_id=review_id)
+
 
 def get_review_from_knowledge_repository(review_id):
     return None

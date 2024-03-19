@@ -117,12 +117,13 @@ def login():
     password = login_form.password.data
     if not user_service.check_valid_user(email, password):
         abort(401, description='Invalid credentials')
+    user = user_service.get_user_by_email(email)
+    resp = jsonify({'user_data': user.json() })
     access_token = authentication_service.generate_access_token(email)
     refresh_token = authentication_service.generate_refresh_token(email)
-    resp = jsonify({'login': True})
     set_access_cookies(resp, access_token)
-    set_refresh_cookies(resp, refresh_token)
-    return resp, 200
+    set_refresh_cookies(resp, refresh_token)    
+    return make_response(resp, 200)
 
 @api_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
