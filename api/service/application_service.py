@@ -32,14 +32,14 @@ def update_application(user_id, application_data):
 
 def get_application(user_id, application_id):
     user = User.query.get(user_id)
+
     if user:
         application = user.applications.filter_by(id=application_id).first()
         if application:
+            app_kg = get_application_from_directory(application.name)
             application_data = {
-                "application": {
-                    "application_data": application.json(),
-                    "reviews": [{"review": review.json()} for review in application.reviews]
-                }
+                "data": app_kg,
+                "user_reviews": [{"review": review.json()} for review in application.reviews]
             }
             return application_data
         else: 
