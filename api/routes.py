@@ -303,7 +303,7 @@ def create_review(user_id, application_id):
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews', methods=['GET'])
 @jwt_required()
-def get_all_reviews(user_id, application_id):
+def get_all_user_application_reviews(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get User {user_id} Application {application_id} Reviews")
     validate_user(user_id)  
     reviews_data = review_service.get_reviews_by_user_application(user_id, application_id)
@@ -320,7 +320,7 @@ def get_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
     validate_user(user_id)
     review_data = review_service.get_review(user_id, application_id, review_id)
-    return make_response(review_data.to_dict(), 200)
+    return make_response(review_data, 200)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['DELETE'])
 @jwt_required()
