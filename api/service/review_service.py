@@ -197,10 +197,14 @@ def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
 def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
     validate_reviews(user_id, reviewsIds)
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
+    if kr_reviews is None:
+        raise api_exceptions.KGRReviewsNotFoundException()
     for kr_review in kr_reviews:
         check_review_splitting(kr_review)
     analyzed_reviews = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model)
     send_reviews_to_kg(analyzed_reviews)
+    return analyzed_reviews
+    
 
 
 

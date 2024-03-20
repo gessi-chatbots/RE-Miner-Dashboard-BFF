@@ -190,8 +190,8 @@ def analyze_reviews(user_id):
     if request.json is None:
         return make_response(jsonify({'message': 'no body'}), 406)
     reviews = request.json
-    review_service.analyze_reviews(user_id, reviews, feature_model, sentiment_model)
-    return make_response(jsonify({'message': 'reviews analyzed'}), 200)
+    analyzed_reviews = review_service.analyze_reviews(user_id, reviews, feature_model, sentiment_model)
+    return make_response(jsonify(analyzed_reviews), 200)
 
 
 # -------------- Applications --------------
