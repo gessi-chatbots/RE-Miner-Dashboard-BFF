@@ -106,7 +106,7 @@ def validate_reviews(user_id, id_dicts):
     user_review_ids = {review.id for review in user.reviews}
     for review in reviews:
         if review.id not in user_review_ids:
-            raise api_exceptions.ReviewNotFromUserException(review["reviewId"])
+            raise api_exceptions.ReviewNotFromUserException(review_id=review.review_id, user_id=user_id)
 
 # TODO make a kr service
 def get_reviews_from_knowledge_repository(reviews):
@@ -341,18 +341,20 @@ def get_reviews_by_user_application(user_id, application_id):
     user_reviews_ids = [result[0] for result in results]
     reviews_request = [{"reviewId":get_review_by_id(id).review_id} for id in user_reviews_ids]
     reviews_kr = get_reviews_from_knowledge_repository(reviews_request)
-    reviews_response = []
-    for review_kr in reviews_kr:
-        review_data = {
-            "application": {
+    data = {
+        "application" : {
             "id" : application_id,
             "name" : application_entity.name
-            },
+        },
+        "reviews" : []
+    }
+    for review_kr in reviews_kr:
+        review_data = {
             "review_id":review_kr.reviewId,
             "review_text": review_kr.review
         }
-        reviews_response.append(review_data)
-    return reviews_response
+        data["reviews"].append(review_data)
+    return data
 
 def has_user_review(user_id, application_id, review_id):
     query = user_reviews_application_association.select().where(
