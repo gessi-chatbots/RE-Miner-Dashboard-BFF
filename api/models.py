@@ -66,6 +66,7 @@ class User(db.Model, UserMixin):
         secondary=user_application_association,
         backref=db.backref('users', lazy='dynamic'),
         lazy='dynamic',
+        cascade='all'
     )
     reviews = db.relationship(
         'Review',

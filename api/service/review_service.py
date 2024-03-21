@@ -329,7 +329,10 @@ def get_review(user_id, application_id, review_id):
         },
         "id":review_sql.id,
         "review_id":review_sql.review_id,
-        "review_text": review_kr.review
+        "review_text": review_kr.review,
+        "sentences": [
+            sentence.to_dict() for sentence in review_kr.sentences
+        ]
     }
     return review_data
 
