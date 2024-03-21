@@ -9,6 +9,7 @@ import requests
 import nltk
 import uuid
 import json
+import os
 
 
 class FeatureDTO:
@@ -116,7 +117,8 @@ def get_reviews_from_knowledge_repository(reviews):
             reviews_json.append(reviews)
         else:
             reviews_json = reviews
-        response = requests.get('http://127.0.0.1:3001/graph-db-api/reviews', json=reviews_json)
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + '/graph-db-api/reviews'
+        response = requests.get(url, json=reviews_json)
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
@@ -179,16 +181,21 @@ def add_sentences_to_review(review):
             sentence_id = f"{review.reviewId}_{index + 1}"
             review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=sentence))
 
+
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
-    endpoint_url = ""
-    if (sentiment_model is not None and sentiment_model != "") and (feature_model is not None and feature_model != ""):
-        endpoint_url = f'http://127.0.0.1:3000/analyze?sentiment_model={sentiment_model}&feature_model={feature_model}'
-    elif (sentiment_model is not None and sentiment_model != "") and (feature_model is None or feature_model == ""):
-        endpoint_url = f"http://127.0.0.1:3000/analyze?sentiment_model={sentiment_model}"
-    elif (feature_model is not None and feature_model != "") and (sentiment_model is None or sentiment_model == ""):
-        endpoint_url = f"http://127.0.0.1:3000/analyze?feature_model={feature_model}"
+    hub_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3000')
+    endpoint_url = hub_url + '/analyze'
+    
+    if sentiment_model and feature_model:
+        endpoint_url += f'?sentiment_model={sentiment_model}&feature_model={feature_model}'
+    elif sentiment_model:
+        endpoint_url += f'?sentiment_model={sentiment_model}'
+    elif feature_model:
+        endpoint_url += f'?feature_model={feature_model}'
+
     reviews_dict = [review.to_dict() for review in reviews]
-    response = requests.post(endpoint_url, json=json.dumps(reviews_dict))
+    response = requests.post(endpoint_url, json=reviews_dict)
+
     if response.status_code == 200:
         return json.loads(response.content)
     else:
@@ -211,8 +218,9 @@ def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
 def send_reviews_to_kg(reviews):
     try:
         headers = {'Content-type': 'application/json'}
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + '/graph-db-api/reviews'
         response = requests.post(
-            'http://127.0.0.1:3001/graph-db-api/reviews',
+            url,
             headers=headers,
             json=(reviews if isinstance(reviews, list) else [reviews])
         )

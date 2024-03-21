@@ -4,6 +4,7 @@ import api.service.review_service as review_service
 import api.exceptions as api_exceptions
 import requests
 import json
+import os
 from api import db
 from api.models import Application, User, user_reviews_application_association
 from sqlalchemy.exc import IntegrityError
@@ -101,8 +102,9 @@ def insert_application_in_sql_db(user_id, application_data):
 def send_applications_to_kg(applications):
     try:
         headers = {'Content-type': 'application/json'}
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + '/graph-db-api/applications'
         response = requests.post(
-            'http://127.0.0.1:3001/graph-db-api/applications',
+            url,
             headers=headers,
             json=(applications if isinstance(applications, list) else [applications])
         )
@@ -134,36 +136,34 @@ def is_application_from_user(user_id, application_id):
         return False
 
 def get_applications_from_directory():
-    # TODO put url in .env
     try:
-        response = requests.get('http://127.0.0.1:3001/graph-db-api/applications/names')
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + '/graph-db-api/applications/names'
+        response = requests.get(url)
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 404:
             raise api_exceptions.KGRApplicationsNotFoundException
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException(e)
-    # TODO handle 500
 
 def get_application_from_directory(app_name):
     app_name_sanitized = app_name.replace(" ", "_")
-    # TODO put url in .env
     try:
-        response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name_sanitized}')
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + f'/graph-db-api/applications/{app_name_sanitized}'
+        response = requests.get(url)
         if response.status_code == 200:
-            # TODO parse json and add application id
             return response.json()
         elif response.status_code == 404:
             raise api_exceptions.KGRApplicationNotFoundException()
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException(e)
-    # TODO handle 500
     
 def add_applications_from_directory_to_user(user_id, app_list):
     for app in app_list:
         try:
             app_name = app['app_name']
-            response = requests.get(f'http://127.0.0.1:3001/graph-db-api/applications/{app_name}')
+            url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + f'/graph-db-api/applications/{app_name}'
+            response = requests.get(url)
             if response.status_code == 200:
                 app_data = response.json()
                 insert_application_in_sql_db(user_id, app_data)
@@ -171,5 +171,4 @@ def add_applications_from_directory_to_user(user_id, app_list):
                 raise api_exceptions.KGRException()
         except requests.exceptions.ConnectionError as e: 
             raise api_exceptions.KGRConnectionException(e)
-    # TODO handle 500
     

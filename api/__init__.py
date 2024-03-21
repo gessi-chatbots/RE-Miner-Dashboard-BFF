@@ -1,10 +1,11 @@
 import secrets
+import os
+import nltk 
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
-import os
 from tenacity import retry, stop_after_delay, wait_fixed
-import nltk 
+
 nltk.download('punkt')
 # App configuration
 api = Flask(__name__)
