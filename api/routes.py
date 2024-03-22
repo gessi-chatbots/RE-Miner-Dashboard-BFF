@@ -219,8 +219,8 @@ def add_application_data_from_directory():
             return make_response({"message": "You must specify a list"}, 400)
         if len(applications_list) == 0:
             return make_response({"message": "no application list specified in body"}, 400)
-    application_service.add_applications_from_directory_to_user(user_id, applications_list)
-    return make_response({"message": "added"}, 200)
+    app = application_service.add_applications_from_directory_to_user(user_id, applications_list)
+    return make_response(app, 200)
 
 @api_bp.route('/applications/directory/<string:app_name>', methods=['GET'])
 @jwt_required()

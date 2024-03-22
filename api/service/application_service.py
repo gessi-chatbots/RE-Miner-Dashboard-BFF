@@ -166,7 +166,8 @@ def add_applications_from_directory_to_user(user_id, app_list):
             response = requests.get(url)
             if response.status_code == 200:
                 app_data = response.json()
-                insert_application_in_sql_db(user_id, app_data)
+                inserted_app = insert_application_in_sql_db(user_id, app_data)
+                return inserted_app.json()
             else:
                 raise api_exceptions.KGRException()
         except requests.exceptions.ConnectionError as e: 
