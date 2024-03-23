@@ -13,24 +13,20 @@ import os
 
 
 class FeatureDTO:
-    def __init__(self, id: str, feature: str):
-        self.id = id
+    def __init__(self, feature: str):
         self.feature = feature
 
     def to_dict(self):
         return {
-            "id": self.id,
             "feature": self.feature,
         }
 
 class SentimentDTO:
-    def __init__(self, id: str, sentiment: str):
-        self.id = id
+    def __init__(self, sentiment: str):
         self.sentiment = sentiment
 
     def to_dict(self):
         return {
-            "id": self.id,
             "sentiment": self.sentiment,
         }
 
@@ -141,12 +137,12 @@ def extract_review_dto_from_json(review_json):
             if 'sentimentData' in sentence_json:
                 sentimentData = sentence_json.get('sentimentData', None)
                 if sentimentData is not None:
-                    sentimentDTO = SentimentDTO(id=sentimentData.get('id'), sentiment=sentimentData.get('sentiment'))
+                    sentimentDTO = SentimentDTO(sentiment=sentimentData.get('sentiment'))
                     sentence.sentimentData = sentimentDTO
             if 'featureData' in sentence_json: 
                 featureData = sentence_json.get('featureData', None)
                 if featureData is not None:
-                    featureDTO = FeatureDTO(id=featureData.get('id'), feature=featureData.get('feature'))
+                    featureDTO = FeatureDTO(feature=featureData.get('feature'))
                     sentence.featureData = featureDTO
             sentences.append(sentence)
     review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, sentences=sentences)
