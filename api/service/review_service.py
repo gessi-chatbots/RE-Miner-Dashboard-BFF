@@ -113,7 +113,7 @@ def get_reviews_from_knowledge_repository(reviews):
             reviews_json.append(reviews)
         else:
             reviews_json = reviews
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + '/graph-db-api/reviews'
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/reviews'
         response = requests.get(url, json=reviews_json)
         if response.status_code == 200:
             review_response_dtos = []
@@ -179,7 +179,7 @@ def add_sentences_to_review(review):
 
 
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
-    hub_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3000')
+    hub_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002')
     endpoint_url = hub_url + '/analyze'
     
     if sentiment_model and feature_model:
@@ -214,7 +214,7 @@ def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
 def send_reviews_to_kg(reviews):
     try:
         headers = {'Content-type': 'application/json'}
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + '/graph-db-api/reviews'
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/reviews'
         response = requests.post(
             url,
             headers=headers,

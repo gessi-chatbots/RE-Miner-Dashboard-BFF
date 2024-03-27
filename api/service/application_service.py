@@ -102,7 +102,7 @@ def insert_application_in_sql_db(user_id, application_data):
 def send_applications_to_kg(applications):
     try:
         headers = {'Content-type': 'application/json'}
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + '/graph-db-api/applications'
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/applications'
         response = requests.post(
             url,
             headers=headers,
@@ -137,7 +137,7 @@ def is_application_from_user(user_id, application_id):
 
 def get_applications_from_directory():
     try:
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + '/graph-db-api/applications/names'
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/applications/names'
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
@@ -149,7 +149,7 @@ def get_applications_from_directory():
 def get_application_from_directory(app_name):
     app_name_sanitized = app_name.replace(" ", "_")
     try:
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + f'/graph-db-api/applications/{app_name_sanitized}'
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + f'/graph-db-api/applications/{app_name_sanitized}'
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
@@ -162,7 +162,7 @@ def add_applications_from_directory_to_user(user_id, app_list):
     for app in app_list:
         try:
             app_name = app['app_name']
-            url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3001') + f'/graph-db-api/applications/{app_name}'
+            url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + f'/graph-db-api/applications/{app_name}'
             response = requests.get(url)
             if response.status_code == 200:
                 app_data = response.json()

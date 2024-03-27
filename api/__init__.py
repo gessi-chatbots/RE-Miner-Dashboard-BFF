@@ -1,6 +1,7 @@
 import secrets
 import os
-import nltk 
+import nltk
+from flask_cors import CORS
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
@@ -9,6 +10,7 @@ from tenacity import retry, stop_after_delay, wait_fixed
 nltk.download('punkt')
 # App configuration
 api = Flask(__name__)
+CORS(api)
 api.config['SECRET_KEY'] = secrets.token_hex(16)
 api.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URL', 'postgresql://postgres:pg_strong_password@localhost:5432/dashboard_db')
 print(f"Database URI: {api.config['SQLALCHEMY_DATABASE_URI']}")

@@ -10,6 +10,6 @@ RUN pipenv install --deploy --ignore-pipfile
 
 COPY . /wsgi
 
-EXPOSE 3003
+EXPOSE 3001
 
-CMD ["pipenv", "run", "flask", "run", "--host=0.0.0.0", "--port=3003"]
+CMD ["pipenv", "run", "flask", "run", "--host=0.0.0.0", "--port=3001"]
