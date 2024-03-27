@@ -118,11 +118,16 @@ def login():
     if not user_service.check_valid_user(email, password):
         abort(401, description='Invalid credentials')
     user = user_service.get_user_by_email(email)
-    resp = jsonify({'user_data': user.json() })
+
     access_token = authentication_service.generate_access_token(email)
     refresh_token = authentication_service.generate_refresh_token(email)
+    resp = jsonify({'user_data': user.json(), 
+                    'access_token': access_token, 
+                    'refresh_token': refresh_token }) 
     set_access_cookies(resp, access_token)
-    set_refresh_cookies(resp, refresh_token)    
+    set_refresh_cookies(resp, refresh_token) 
+    resp.headers['X-Access-Token'] = access_token
+    resp.headers['X-Refresh-Token'] = refresh_token
     return make_response(resp, 200)
 
 @api_bp.route('/refresh', methods=['POST'])
