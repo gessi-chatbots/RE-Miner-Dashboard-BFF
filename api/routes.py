@@ -141,14 +141,26 @@ def logout():
     unset_jwt_cookies(resp)
     return resp, 200
 
-# -------------- User --------------
-@api_bp.route("/users", methods=['POST'])
+
+@api_bp.route("/users", methods=['POST', 'OPTIONS'])
 def create_user():
+    if request.method == 'OPTIONS':
+        # Handle OPTIONS request (preflight)
+        headers = {
+            'Access-Control-Allow-Origin': 'http://localhost:3000',  # Adjust origin accordingly
+            'Access-Control-Allow-Methods': 'POST',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
+        return ('', 204, headers)
+    
+    # Actual POST request handling
     api_logger.info(f"[{datetime.now()}]: Register User")
     registration_form = api_forms.RegistrationForm(request.form)
     api_utils.validate_form(registration_form)
     user = user_service.create_user(request.form)
-    return make_response(jsonify({'user_data': user }), 201)
+    response = make_response(jsonify({'user_data': user }), 201)
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')  # Adjust origin accordingly
+    return response
 
 @api_bp.route('/users/<string:user_id>', methods=['GET'])
 @jwt_required()

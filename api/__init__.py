@@ -8,13 +8,16 @@ from datetime import timedelta
 from tenacity import retry, stop_after_delay, wait_fixed
 
 nltk.download('punkt')
+
 # App configuration
 api = Flask(__name__)
-CORS(api)
+from flask_cors import CORS
+CORS(api, supports_credentials=True, origins='http://localhost:3000')
 api.config['SECRET_KEY'] = secrets.token_hex(16)
 api.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URL', 'postgresql://postgres:pg_strong_password@localhost:5432/dashboard_db')
 print(f"Database URI: {api.config['SQLALCHEMY_DATABASE_URI']}")
 api.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+api.config['CORS_HEADERS'] = 'Content-Type'
 
 # APIs Versions
 api_version = 'v1'

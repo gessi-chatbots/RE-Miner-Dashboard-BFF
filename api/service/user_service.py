@@ -13,10 +13,10 @@ def create_user(form):
     try:
         user_data = {
             'id': str(uuid.uuid4()),
-            'name': form.get('name'),
-            'family_name': form.get('family_name'),
-            'email': form.get('email'),
-            'password_hash': form.get('password')
+            'name': form['name'],
+            'family_name': form['family_name'],
+            'email': form['email'],
+            'password_hash': form['password']
         }
         new_user = api_models.User(**user_data)
         db.session.add(new_user)
