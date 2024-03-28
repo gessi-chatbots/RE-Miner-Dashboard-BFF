@@ -30,7 +30,7 @@ api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.lo
 
 def validate_user(user_id):
     jwt_id = get_jwt_identity()
-    if jwt_id != user_id:
+    if jwt_id is not None and jwt_id != user_id:
         raise api_exceptions.UnauthorizedUserException
     if user_service.get_user_by_id(user_id) is None:
         return api_exceptions.UnauthorizedUserException
@@ -168,7 +168,7 @@ def create_user():
     return response
 
 @api_bp.route('/users/<string:user_id>', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def get_user(user_id):
     api_logger.info(f"[{datetime.now()}]: Get User {user_id}")
     validate_user(user_id)
