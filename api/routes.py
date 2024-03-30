@@ -249,7 +249,7 @@ def get_application_data_from_directory(app_name):
 
 
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def get_applications(user_id):
     api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications")
     validate_user(user_id)
@@ -290,7 +290,7 @@ def update_application(user_id, application_id):
     return make_response(jsonify(updated_application), 200)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['DELETE'])
-@jwt_required()
+@jwt_required(optional=True)
 def delete_application(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: 'Delete Application {application_id} data")
     validate_user(user_id)
