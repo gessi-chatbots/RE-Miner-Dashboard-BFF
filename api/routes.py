@@ -260,7 +260,7 @@ def get_applications(user_id):
         return make_response(jsonify(user_applications), 200)
     
 @api_bp.route('/users/<string:user_id>/applications', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def create_applications(user_id):
     api_logger.info(f"[{datetime.now()}]: Create Applications for user {user_id} request")
     validate_user(user_id)
