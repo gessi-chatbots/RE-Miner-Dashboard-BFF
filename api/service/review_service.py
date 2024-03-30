@@ -1,6 +1,6 @@
 from api import db
-from api.models import User, Review, user_reviews_application_association
-from sqlalchemy import insert, select, delete, exc
+from api.models import User, Review, user_reviews_application_association, user_review_association
+from sqlalchemy import insert, select, delete, exc, func
 from typing import List
 import api.service.user_service as user_service
 import api.service.application_service as application_service
@@ -10,6 +10,7 @@ import nltk
 import uuid
 import json
 import os
+import math
 
 
 class FeatureDTO:
@@ -366,6 +367,44 @@ def get_reviews_by_user_application(user_id, application_id):
         }
         data["reviews"].append(review_data)
     return data
+
+def get_reviews_by_user(user_id, page, page_size):
+    # Step 1: Count total number of reviews
+    total_reviews_query = db.session.query(func.count()).select_from(user_reviews_application_association).\
+        filter(user_reviews_application_association.c.user_id == user_id)
+    total_reviews_count = db.session.execute(total_reviews_query).scalar()
+
+    # Step 2: Paginate the query to retrieve a subset of review_id and application_id
+    offset = (page - 1) * page_size
+    query = select(
+        user_reviews_application_association.c.review_id,
+        user_reviews_application_association.c.application_id
+    ).where(
+        user_reviews_application_association.c.user_id == user_id
+    ).limit(page_size).offset(offset)
+    
+    results = db.session.execute(query).fetchall()
+    
+    reviews_entities = [db.session.query(Review).filter_by(id=result[0]).first() for result in results]
+    application_ids = [result[1] for result in results]
+
+    reviews_request = [{"reviewId": review.review_id} for review in reviews_entities]
+    reviews_kr = get_reviews_from_knowledge_repository(reviews_request)
+    
+    reviews = []
+    for review_kr, application_id in zip(reviews_kr, application_ids):
+        app = review_kr.applicationId.replace('_', " ")  # Assuming you want to replace underscores with spaces
+        review_data = {
+            "app_id": application_id,
+            "app_name": app,
+            "review_id": review_kr.reviewId,
+            "review": review_kr.review
+        }
+        reviews.append(review_data)
+
+    total_pages = math.ceil(total_reviews_count / page_size)
+    
+    return {'reviews': reviews, 'total_pages': total_pages}
 
 def has_user_review(user_id, application_id, review_id):
     query = user_reviews_application_association.select().where(

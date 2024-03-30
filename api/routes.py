@@ -318,6 +318,24 @@ def create_review(user_id, application_id):
     review = review_service.create_review(user_id, application_id, review_form.to_dict())
     return make_response(jsonify(review), 201)
 
+@api_bp.route('/users/<string:user_id>/reviews', methods=['GET'])
+@jwt_required(optional=True)
+def get_all_user_reviews(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get User {user_id} reviews")
+    
+    page = request.args.get('page', default=1, type=int)
+    page_size = request.args.get('pageSize', default=8, type=int)
+    
+    reviews_data = review_service.get_reviews_by_user(user_id, page, page_size)
+    
+    if reviews_data['reviews']:
+        return make_response(jsonify(reviews_data), 200)
+    elif reviews_data['total_pages'] == 0:
+        return make_response('no content', 204)
+    else:
+        return make_response(f'no reviews found for page {page}', 404)
+
+
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews', methods=['GET'])
 @jwt_required()
 def get_all_user_application_reviews(user_id, application_id):
