@@ -10,19 +10,30 @@ from api.models import Application, User, user_reviews_application_association
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete
 
-def get_applications(user_id):
+def get_applications(user_id, page, page_size):
     user = user_service.get_user_by_id(user_id)
-    applications = user.applications.all()
+    applications_query = user.applications
+
+    # Calculate offset based on page number and page size
+    offset = (page - 1) * page_size
+
+    # Fetch applications for the current page
+    applications = applications_query.offset(offset).limit(page_size).all()
+
+    total_count = applications_query.count()
+    total_pages = (total_count + page_size - 1) // page_size
+
     application_list = []
+
     for app in applications:
         application = {
             'data': app.json(),
-            'reviews': []
+            'reviews': [rev.json() for rev in app.reviews]
         }
-        for rev in app.reviews:
-            application['reviews'].append(rev.json())
         application_list.append(application)
-    return application_list
+
+    return application_list, total_pages
+
 
 def update_application(user_id, application_data):
     application_name = application_data['app_name']

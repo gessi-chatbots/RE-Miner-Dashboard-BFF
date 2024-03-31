@@ -253,12 +253,21 @@ def get_application_data_from_directory(app_name):
 def get_applications(user_id):
     api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications")
     validate_user(user_id)
-    user_applications = application_service.get_applications(user_id)
-    if len(user_applications) == 0:
+    page = request.args.get('page', default=1, type=int)
+    page_size = request.args.get('pageSize', default=8, type=int)
+    user_applications, total_pages = application_service.get_applications(user_id, page, page_size)
+    if not user_applications:
         return make_response('no content', 204)
     else:
-        return make_response(jsonify(user_applications), 200)
-    
+        response_data = {
+            "applications": user_applications,
+            "total_pages": total_pages
+        }
+        return make_response(jsonify(response_data), 200)
+
+
+
+
 @api_bp.route('/users/<string:user_id>/applications', methods=['POST'])
 @jwt_required(optional=True)
 def create_applications(user_id):
@@ -322,12 +331,9 @@ def create_review(user_id, application_id):
 @jwt_required(optional=True)
 def get_all_user_reviews(user_id):
     api_logger.info(f"[{datetime.now()}]: Get User {user_id} reviews")
-    
     page = request.args.get('page', default=1, type=int)
     page_size = request.args.get('pageSize', default=8, type=int)
-    
     reviews_data = review_service.get_reviews_by_user(user_id, page, page_size)
-    
     if reviews_data['reviews']:
         return make_response(jsonify(reviews_data), 200)
     elif reviews_data['total_pages'] == 0:
