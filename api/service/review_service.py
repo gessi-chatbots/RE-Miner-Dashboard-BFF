@@ -330,7 +330,7 @@ def get_review(user_id, application_id, review_id):
     review_data = {
         "application": {
             "id" : application_id,
-            "name" : app.name
+            "name" : app.name.replace('_',' ')
         },
         "id":review_sql.id,
         "review_id":review_sql.review_id,
@@ -353,10 +353,11 @@ def get_reviews_by_user_application(user_id, application_id):
     user_reviews_ids = [result[0] for result in results]
     reviews_request = [{"reviewId":get_review_by_id(id).review_id} for id in user_reviews_ids]
     reviews_kr = get_reviews_from_knowledge_repository(reviews_request)
+
     data = {
         "application" : {
             "id" : application_id,
-            "name" : application_entity.name
+            "name" : application_entity.name.replace('_', " ")
         },
         "reviews" : []
     }
@@ -369,12 +370,10 @@ def get_reviews_by_user_application(user_id, application_id):
     return data
 
 def get_reviews_by_user(user_id, page, page_size):
-    # Step 1: Count total number of reviews
     total_reviews_query = db.session.query(func.count()).select_from(user_reviews_application_association).\
         filter(user_reviews_application_association.c.user_id == user_id)
     total_reviews_count = db.session.execute(total_reviews_query).scalar()
 
-    # Step 2: Paginate the query to retrieve a subset of review_id and application_id
     offset = (page - 1) * page_size
     query = select(
         user_reviews_application_association.c.review_id,
