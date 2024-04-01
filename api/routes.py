@@ -213,7 +213,7 @@ def analyze_reviews(user_id):
 
 # -------------- Applications --------------
 @api_bp.route('/applications/directory', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def get_applications_from_directory():
     api_logger.info(f"[{datetime.now()}]: Get all Applications from directory request")
     directory_applications = application_service.get_applications_from_directory()
@@ -223,7 +223,7 @@ def get_applications_from_directory():
         return make_response(directory_applications, 200)
 
 @api_bp.route('/applications/directory', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def add_application_data_from_directory():
     api_logger.info(f"[{datetime.now()}]: Add applications from directory data request") 
     if 'user_id' not in request.args:
