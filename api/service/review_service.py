@@ -2,6 +2,7 @@ from api import db
 from api.models import User, Review, user_reviews_application_association, user_review_association
 from sqlalchemy import insert, select, delete, exc, func
 from typing import List
+from datetime import date 
 import api.service.user_service as user_service
 import api.service.application_service as application_service
 import api.exceptions as api_exceptions
@@ -47,17 +48,19 @@ class SentenceDTO:
         }
 
 class ReviewResponseDTO:
-    def __init__(self, id: str, applicationId:str, review: str, sentences: List[SentenceDTO]):
+    def __init__(self, id: str, applicationId:str, review: str, date: date, sentences: List[SentenceDTO]):
         self.reviewId = id
         self.applicationId = applicationId
         self.review = review
         self.sentences = sentences
+        self.date = date
 
     def to_dict(self):
         return {
             "reviewId": self.reviewId,
             "applicationId": self.applicationId,
             "review": self.review,
+            "date": self.date,
             "sentences": [sentence.to_dict() for sentence in self.sentences]
         }
     
@@ -130,7 +133,8 @@ def extract_review_dto_from_json(review_json):
     app_identifier = review_json.get('applicationId')
     id = review_json.get('reviewId')
     body = review_json.get('review')
-    sentences_json = review_json.get('sentences')
+    sentences_json = review_json    .get('sentences')
+    date = review_json.get('date')
     sentences = []
     if sentences_json is not None:
         for sentence_json in sentences_json:
@@ -146,7 +150,7 @@ def extract_review_dto_from_json(review_json):
                     featureDTO = FeatureDTO(feature=featureData.get('feature'))
                     sentence.featureData = featureDTO
             sentences.append(sentence)
-    review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, sentences=sentences)
+    review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, date=date, sentences=sentences)
     return review_response_dto
 
 def is_review_splitted(review):
@@ -405,7 +409,8 @@ def get_reviews_by_user(user_id, page, page_size):
             "app_id": application_id,
             "app_name": app,
             "review_id": review_kr.reviewId,
-            "review": review_kr.review
+            "review": review_kr.review,
+            "date": review_kr.date
         }
         reviews.append(review_data)
 
