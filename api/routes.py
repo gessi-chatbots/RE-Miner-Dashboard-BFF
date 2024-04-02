@@ -195,7 +195,7 @@ def delete_user(user_id):
 
 # -------------- Analysis --------------
 @api_bp.route('/users/<string:user_id>/analyze', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def analyze_reviews(user_id):
     api_logger.info(f"[{datetime.now()}]: Analyze User {user_id} Reviews")
     if not request.args \
@@ -331,8 +331,8 @@ def create_review(user_id, application_id):
 @jwt_required(optional=True)
 def get_all_user_reviews(user_id):
     api_logger.info(f"[{datetime.now()}]: Get User {user_id} reviews")
-    page = request.args.get('page', default=1, type=int)
-    page_size = request.args.get('pageSize', default=8, type=int)
+    page = request.args.get('page', type=int)
+    page_size = request.args.get('pageSize', type=int)
     reviews_data = review_service.get_reviews_by_user(user_id, page, page_size)
     if reviews_data['reviews']:
         return make_response(jsonify(reviews_data), 200)
@@ -356,7 +356,7 @@ def get_all_user_application_reviews(user_id, application_id):
         return make_response(jsonify(reviews_data), 200)
     
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def get_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
     validate_user(user_id)
@@ -372,7 +372,7 @@ def delete_review(user_id, application_id, review_id):
     return make_response(jsonify(api_responses.responses['delete_review_success']), 204)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>/analyze', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def analyze_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Analyze Review {review_id} for User's {user_id} Application {application_id}")
     validate_user(user_id)

@@ -372,15 +372,23 @@ def get_reviews_by_user_application(user_id, application_id):
 def get_reviews_by_user(user_id, page, page_size):
     total_reviews_query = db.session.query(func.count()).select_from(user_reviews_application_association).\
         filter(user_reviews_application_association.c.user_id == user_id)
+    
     total_reviews_count = db.session.execute(total_reviews_query).scalar()
-
-    offset = (page - 1) * page_size
-    query = select(
-        user_reviews_application_association.c.review_id,
-        user_reviews_application_association.c.application_id
-    ).where(
-        user_reviews_application_association.c.user_id == user_id
-    ).limit(page_size).offset(offset)
+    if (page is not None and page_size is not None):
+        offset = (page - 1) * page_size
+        query = select(
+            user_reviews_application_association.c.review_id,
+            user_reviews_application_association.c.application_id
+        ).where(
+            user_reviews_application_association.c.user_id == user_id
+        ).limit(page_size).offset(offset)
+    else:
+        query = select(
+            user_reviews_application_association.c.review_id,
+            user_reviews_application_association.c.application_id
+        ).where(
+            user_reviews_application_association.c.user_id == user_id
+        )
     
     results = db.session.execute(query).fetchall()
     
@@ -392,7 +400,7 @@ def get_reviews_by_user(user_id, page, page_size):
     
     reviews = []
     for review_kr, application_id in zip(reviews_kr, application_ids):
-        app = review_kr.applicationId.replace('_', " ")  # Assuming you want to replace underscores with spaces
+        app = review_kr.applicationId.replace('_', " ")
         review_data = {
             "app_id": application_id,
             "app_name": app,
@@ -401,7 +409,9 @@ def get_reviews_by_user(user_id, page, page_size):
         }
         reviews.append(review_data)
 
-    total_pages = math.ceil(total_reviews_count / page_size)
+    total_pages = 0
+    if (page is not None and page_size is not None):
+        total_pages = math.ceil(total_reviews_count / page_size)
     
     return {'reviews': reviews, 'total_pages': total_pages}
 

@@ -30,6 +30,8 @@ def get_applications(user_id, page, page_size):
             'data': app.json(),
             'reviews': [rev.json() for rev in app.reviews]
         }
+        clean_name = application['data']['name'].replace('_', ' ')
+        application['data']['name'] = clean_name
         application_list.append(application)
 
     return application_list, total_pages
