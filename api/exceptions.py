@@ -55,5 +55,5 @@ class KGRApplicationNotFoundException(Exception):
     message = "The application does not exist in the Knowledge Graph"
 
 class KGRApplicationsNotFoundException(Exception):
-    code = 404
+    code = 204
     message = "No applications found in the Knowledge Graph"

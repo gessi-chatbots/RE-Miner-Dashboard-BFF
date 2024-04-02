@@ -339,7 +339,7 @@ def get_all_user_reviews(user_id):
     elif reviews_data['total_pages'] == 0:
         return make_response('no content', 204)
     else:
-        return make_response(f'no reviews found for page {page}', 404)
+        return make_response(f'no reviews found for page {page}', 204)
 
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews', methods=['GET'])

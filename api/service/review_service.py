@@ -199,7 +199,7 @@ def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
         raise api_exceptions.HUBException()
     
 def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
-    validate_reviews(user_id, reviewsIds)
+    # validate_reviews(user_id, reviewsIds)
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
     if kr_reviews is None:
         raise api_exceptions.KGRReviewsNotFoundException()
