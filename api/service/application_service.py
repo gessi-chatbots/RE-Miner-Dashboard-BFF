@@ -133,13 +133,14 @@ def get_kg_top_features(applications):
         applications = [app.replace(" ", "_") for app in applications]
         headers = {'Content-type': 'application/json'}
         url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/analysis/top-features'
-        response = requests.get(
+        response = requests.post(
             url,
             headers=headers,
             json=(applications if isinstance(applications, list) else [applications])
         )
         if response.status_code == 200:
-            return response.json
+            transformed_response = [{'feature': item['featureName'], 'occurrences': item['occurrences']} for item in response.json()['topFeatures']]
+            return transformed_response
         else:
             raise api_exceptions.KGRException()
     except requests.exceptions.ConnectionError as e: 
@@ -181,16 +182,8 @@ def get_top_sentiments(user_id, applications):
 
 
 def get_top_features(user_id, applications):
-    get_kg_top_features(applications)
-    processed_applications = []
-    try:
-        for application_data in applications:
-            processed_applications.append(save_application_in_sql_db(user_id, application_data))
-        db.session.commit()
-        return processed_applications
-    except IntegrityError as e:
-        db.session.rollback()
-        raise api_exceptions.UnknownException
+    return get_kg_top_features(applications)
+
 
 def is_application_from_user(user_id, application_id):
     user_entity = user_service.get_user_by_id(user_id)
