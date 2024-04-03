@@ -211,6 +211,28 @@ def analyze_reviews(user_id):
     return make_response(jsonify(analyzed_reviews), 200)
 
 
+@api_bp.route('/users/<string:user_id>/analyze/top-sentiments', methods=['POST'])
+@jwt_required(optional=True)
+def topUserSentimentsByAppNames(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get User {user_id} top sentiments")
+    validate_user(user_id)
+    if request.json is None:
+        return make_response(jsonify({'message': 'no body'}), 406)
+    app_names = request.json.get('data')
+    top_sentiments = application_service.get_top_sentiments(user_id, app_names)
+    return make_response(jsonify(top_sentiments), 200)
+
+
+@api_bp.route('/users/<string:user_id>/analyze/top-sentiments', methods=['POST'])
+@jwt_required(optional=True)
+def topUserFeaturesByAppNames(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get User {user_id} top sentiments")
+    validate_user(user_id)
+    if request.json is None:
+        return make_response(jsonify({'message': 'no body'}), 406)
+    app_names = request.json
+    top_features = application_service.get_top_features(user_id, app_names)
+    return make_response(jsonify(top_features), 200)
 # -------------- Applications --------------
 @api_bp.route('/applications/directory', methods=['GET'])
 @jwt_required(optional=True)
