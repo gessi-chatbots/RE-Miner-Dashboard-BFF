@@ -233,6 +233,23 @@ def topUserFeaturesByAppNames(user_id):
     app_names = request.json.get('data')
     top_features = application_service.get_top_features(user_id, app_names)
     return make_response(jsonify(top_features), 200)
+
+@api_bp.route('/users/<string:user_id>/applications/<string:app_id>/statistics', methods=['GET'])
+@jwt_required(optional=True)
+def statistics(user_id, app_id):
+    api_logger.info(f"[{datetime.now()}]: Analyze User {user_id} Reviews")
+    validate_user(user_id)
+
+    # Check if request has query parameters
+    if not request.args or ('start_date' not in request.args and 'end_date' not in request.args):
+        return make_response(jsonify({'message': 'start_date or end_date parameter is missing'}), 400)
+
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    statistics = application_service.get_app_statistics(app_id, start_date, end_date)
+    return make_response(jsonify(statistics), 200)
+
 # -------------- Applications --------------
 @api_bp.route('/applications/directory', methods=['GET'])
 @jwt_required(optional=True)
@@ -337,6 +354,15 @@ def get_application(user_id, application_id):
     if application_data is None:
         return make_response(jsonify({'message': 'Application not found for the given user'}), 404)
     return make_response(application_data, 200)
+
+
+@api_bp.route('/users/<string:user_id>/applications/<string:application_id>/features', methods=['GET'])
+@jwt_required(optional=True)
+def get_application_features(user_id, application_id):
+    api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
+    validate_user(user_id)
+    features = application_service.get_application_features(application_id)
+    return make_response(features, 200)
 
 # -------------- Reviews --------------
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews', methods=['POST'])

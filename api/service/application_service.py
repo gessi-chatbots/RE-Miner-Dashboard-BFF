@@ -46,7 +46,6 @@ def update_application(user_id, application_data):
 
 def get_application(user_id, application_id):
     user = User.query.get(user_id)
-
     if user:
         application = user.applications.filter_by(id=application_id).first()
         if application:
@@ -58,6 +57,19 @@ def get_application(user_id, application_id):
             return application_data
         else: 
             return None
+        
+def get_application_features(application_id):
+    app = get_application_by_id(application_id)
+    app_name_sanitized = app.name.replace(" ", "_")
+    try:
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + f'/graph-db-api/applications/{app_name_sanitized}/features'
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            raise api_exceptions.KGRApplicationNotFoundException()
+    except requests.exceptions.ConnectionError as e: 
+        raise api_exceptions.KGRConnectionException(e)
 
 def delete_application(user_id, application_id):
     user = User.query.get(user_id)
@@ -163,7 +175,27 @@ def get_kg_top_sentiments(applications):
             raise api_exceptions.KGRException()
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException(e)
+    
+def get_app_statistics(application, start_date="2020-01-01", end_date=None):
+    try:
+        app = get_application_by_id(application)
+        app_name_sanitized = app.name.replace(" ", "_")
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + f'/graph-db-api/applications/{app_name_sanitized}/statistics'
+        
+        params = {}
+        if start_date:
+            params['startDate'] = start_date
+        if end_date:
+            params['endDate'] = end_date
 
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise api_exceptions.KGRException()
+    except requests.exceptions.ConnectionError as e:
+        raise api_exceptions.KGRConnectionException(e)
+    
 def process_applications(user_id, applications):
     send_applications_to_kg(applications)
     processed_applications = []
