@@ -18,6 +18,8 @@ flask-wtf = "*"
 email-validator = "*"
 tenacity = "*"
 requests = "*"
+flask-cors = "*"
+nltk = "*"
 
 [dev-packages]
 

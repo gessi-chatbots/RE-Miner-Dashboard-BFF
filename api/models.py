@@ -27,9 +27,13 @@ class Application(db.Model):
 class Review(db.Model):
     __tablename__ = 'reviews'
     id = db.Column(db.String(36), primary_key=True, unique=True)
+    review_id = db.Column(db.String(36))
 
     def json(self):
-        return {'id': self.id}
+        return {
+            'id': self.id,
+                'reviewId': self.review_id
+                }
 
 user_application_association = db.Table(
     'user_applications',
@@ -62,6 +66,7 @@ class User(db.Model, UserMixin):
         secondary=user_application_association,
         backref=db.backref('users', lazy='dynamic'),
         lazy='dynamic',
+        cascade='all'
     )
     reviews = db.relationship(
         'Review',

@@ -13,10 +13,10 @@ def create_user(form):
     try:
         user_data = {
             'id': str(uuid.uuid4()),
-            'name': form.get('name'),
-            'family_name': form.get('family_name'),
-            'email': form.get('email'),
-            'password_hash': form.get('password')
+            'name': form['name'],
+            'family_name': form['family_name'],
+            'email': form['email'],
+            'password_hash': form['password']
         }
         new_user = api_models.User(**user_data)
         db.session.add(new_user)
@@ -28,6 +28,8 @@ def create_user(form):
 
 def get_user_by_id(id):
     user = api_models.User.query.filter_by(id=id).one_or_none()
+    if user is None:
+        raise api_exceptions.UserNotFoundException()
     return user
 
 def get_user_by_email(email):
