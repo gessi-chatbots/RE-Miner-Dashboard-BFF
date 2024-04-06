@@ -184,7 +184,7 @@ def add_sentences_to_review(review):
 
 
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
-    hub_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002')
+    hub_url = 'http://127.0.0.1:3002'
     endpoint_url = hub_url + '/analyze'
     
     if sentiment_model and feature_model:
