@@ -4,11 +4,17 @@ import api.service.review_service as review_service
 import api.exceptions as api_exceptions
 import requests
 import json
+from datetime import date, datetime
 import os
 from api import db
 from api.models import Application, User, user_reviews_application_association
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete
+import logging
+
+api_logger = logging.getLogger('api')
+api_logger.setLevel(logging.DEBUG)
+api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 
 def get_applications(user_id, page, page_size):
     user = user_service.get_user_by_id(user_id)
@@ -163,6 +169,7 @@ def get_kg_top_sentiments(applications):
         applications = [app.replace(" ", "_") for app in applications]
         headers = {'Content-type': 'application/json'}
         url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/analysis/top-sentiments'
+        api_logger.info(f"KG URL {url}")
         response = requests.post(
             url,
             headers=headers,
@@ -172,8 +179,10 @@ def get_kg_top_sentiments(applications):
             transformed_response = [{'sentiment': item['sentimentName'], 'occurrences': item['occurrences']} for item in response.json()['topSentiments']]
             return transformed_response
         else:
+            api_logger.warning(f"Response unwanted status {response} {response.status_code}")
             raise api_exceptions.KGRException()
-    except requests.exceptions.ConnectionError as e: 
+    except requests.exceptions.ConnectionError as e:
+        api_logger.error(f"error {e}")
         raise api_exceptions.KGRConnectionException(e)
     
 def get_app_statistics(application, start_date="2020-01-01", end_date=None):
@@ -227,12 +236,14 @@ def is_application_from_user(user_id, application_id):
 def get_applications_from_directory():
     try:
         url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/applications/names'
+        api_logger.info(f"[{datetime.now()}]: KG URL {url}")
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 404:
             raise api_exceptions.KGRApplicationsNotFoundException
     except requests.exceptions.ConnectionError as e: 
+        api_logger.error(f"[{datetime.now()}]: KG Error {e}")
         raise api_exceptions.KGRConnectionException(e)
 
 def get_application_from_directory(app_name):

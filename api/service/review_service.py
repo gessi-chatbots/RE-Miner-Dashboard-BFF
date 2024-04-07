@@ -2,7 +2,7 @@ from api import db
 from api.models import User, Review, user_reviews_application_association, user_review_association
 from sqlalchemy import insert, select, delete, exc, func
 from typing import List
-from datetime import date 
+from datetime import date, datetime
 import api.service.user_service as user_service
 import api.service.application_service as application_service
 import api.exceptions as api_exceptions
@@ -12,7 +12,11 @@ import uuid
 import json
 import os
 import math
+import logging
 
+api_logger = logging.getLogger('api')
+api_logger.setLevel(logging.DEBUG)
+api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 
 class FeatureDTO:
     def __init__(self, feature: str):
@@ -118,6 +122,7 @@ def get_reviews_from_knowledge_repository(reviews):
         else:
             reviews_json = reviews
         url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/reviews'
+        print(f"url {url}")
         response = requests.get(url, json=reviews_json)
         if response.status_code == 200:
             review_response_dtos = []
@@ -127,6 +132,7 @@ def get_reviews_from_knowledge_repository(reviews):
         elif response.status_code == 404:
             raise api_exceptions.KGRReviewsNotFoundException
     except requests.exceptions.ConnectionError as e: 
+        print(f"error {e}")
         raise api_exceptions.KGRConnectionException()
     
 def extract_review_dto_from_json(review_json):
@@ -220,6 +226,7 @@ def send_reviews_to_kg(reviews):
     try:
         headers = {'Content-type': 'application/json'}
         url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/reviews'
+        print(f"url {url}")
         response = requests.post(
             url,
             headers=headers,
@@ -228,8 +235,10 @@ def send_reviews_to_kg(reviews):
         if response.status_code == 201:
             return response.json
         else:
+            print(f"error {response}")
             raise api_exceptions.KGRException()
     except requests.exceptions.ConnectionError as e: 
+        print(f"error {e}")
         raise api_exceptions.KGRConnectionException()
 
 

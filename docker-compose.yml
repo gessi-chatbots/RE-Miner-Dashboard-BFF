@@ -1,14 +1,14 @@
 version: '3.9'
 
 services:
-  bff:
-    container_name: bff
+  re_miner_bff:
+    container_name: re_miner_bff
     build:
       context: ./
     env_file:
-      - ./bff.env 
+      - ./docker.env 
     ports:
-      - "3003:3003"
+      - "3001:3001"
     depends_on:
       - db
 
@@ -21,6 +21,8 @@ services:
       - pgdata:/var/lib/postgresql/12/data
     ports:
       - "5432:5432"
+    user: "postgres"
+
 
 volumes:
   pgdata: {}
