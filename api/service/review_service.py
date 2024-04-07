@@ -190,9 +190,8 @@ def add_sentences_to_review(review):
 
 
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
-    hub_url = 'http://127.0.0.1:3002'
-    endpoint_url = hub_url + '/analyze'
-    
+    endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze'
+    api_logger.info(f"[{datetime.now()}]: HUB URL {endpoint_url}")
     if sentiment_model and feature_model:
         endpoint_url += f'?sentiment_model={sentiment_model}&feature_model={feature_model}'
     elif sentiment_model:
@@ -206,6 +205,7 @@ def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
     if response.status_code == 200:
         return json.loads(response.content)
     else:
+        api_logger.info(f"[{datetime.now()}]: HUB unnexpected response {response.status_code} {response}")
         raise api_exceptions.HUBException()
     
 def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
