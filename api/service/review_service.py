@@ -13,6 +13,9 @@ import json
 import os
 import math
 import logging
+import openpyxl
+import statistics
+
 
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
@@ -188,9 +191,28 @@ def add_sentences_to_review(review):
             sentence_id = f"{review.reviewId}_{index + 1}"
             review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=sentence))
 
+def send_to_hub_for_performance(reviews, feature_model, sentiment_model, hub_version):
+    endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze/performance'
+    api_logger.info(f"[{datetime.now()}]: HUB URL {endpoint_url}")
+    if sentiment_model and feature_model:
+        endpoint_url += f'?sentiment_model={sentiment_model}&feature_model={feature_model}&hub_version={hub_version}'
+    elif sentiment_model:
+        endpoint_url += f'?sentiment_model={sentiment_model}&hub_version={hub_version}'
+    elif feature_model:
+        endpoint_url += f'?feature_model={feature_model}&hub_version={hub_version}'
 
-def send_to_hub_for_analysis(reviews, feature_model, sentiment_model):
-    endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze/v0'
+    reviews_dict = [review.to_dict() for review in reviews]
+    response = requests.post(endpoint_url, json=reviews_dict)
+
+    if response.status_code == 200:
+        return json.loads(response.content)
+    else:
+        api_logger.info(f"[{datetime.now()}]: HUB unnexpected response {response.status_code} {response}")
+        raise api_exceptions.HUBException()
+
+
+def send_to_hub_for_analysis(reviews, feature_model, sentiment_model, hub_version):
+    endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze' +  '/' + hub_version
     api_logger.info(f"[{datetime.now()}]: HUB URL {endpoint_url}")
     if sentiment_model and feature_model:
         endpoint_url += f'?sentiment_model={sentiment_model}&feature_model={feature_model}'
@@ -215,12 +237,41 @@ def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
         raise api_exceptions.KGRReviewsNotFoundException()
     for kr_review in kr_reviews:
         check_review_splitting(kr_review)
-    analyzed_reviews = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model)
-    send_reviews_to_kg(analyzed_reviews)
-    return analyzed_reviews
+    hub_response = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model, 'v0')
+    send_reviews_to_kg(hub_response['analyzed_reviews'])
+    return hub_response['analyzed_reviews']
+
+
+
+def test_performance(reviews_json):
+    output_file = "performance_results.xlsx"
     
+    wb = openpyxl.Workbook()
 
+    review_response_dtos = []
+    for review_json in reviews_json:
+        review_response_dtos.append(extract_review_dto_from_json(review_json))    
+    for review_dto in review_response_dtos:
+        check_review_splitting(review_dto)
+    
+    versions = ['v0']
+    feature_models = ["transfeatex", "t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
+    sentiment_models = ["BERT", "BETO","GPT-3.5"]
 
+    for version in versions:
+        ws = wb.create_sheet(title=version)
+        ws.append(["Feature Model", "Sentiment Model", "Average time for 5 executions (seconds)"])
+        for feature_model in feature_models:
+            for sentiment_model in sentiment_models:
+                execution_times = []
+                for _ in range(5):
+                    analyzed_reviews = send_to_hub_for_analysis(review_response_dtos, feature_model, sentiment_model, version)
+                    time = analyzed_reviews['execution_time']
+                    execution_times.append(time)
+                avg_time = statistics.mean(execution_times)
+                ws.append([feature_model, sentiment_model, avg_time])
+
+    wb.save(output_file)
 
 def send_reviews_to_kg(reviews):
     try:

@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import request, jsonify, make_response, abort, Blueprint
+from flask import request, jsonify, make_response, abort, Blueprint, send_file
 from flask_jwt_extended import (set_access_cookies, 
                                 set_refresh_cookies, 
                                 jwt_required,
@@ -16,25 +16,27 @@ import api.service.application_service as application_service
 import api.responses as api_responses
 import api.exceptions as api_exceptions
 
-# API version
+#---------------------------------------------------------------------------
+#   API Versioning
+#---------------------------------------------------------------------------
 api_name = 'api'
 api_version = 'v1'
 
-# API Blueprint
+#---------------------------------------------------------------------------
+#   API Blueprint
+#---------------------------------------------------------------------------
 api_bp = Blueprint('api_bp', __name__)
 
-# API Logger configuration
+#---------------------------------------------------------------------------
+#   API Logging Configuration
+#---------------------------------------------------------------------------
 api_logger = logging.getLogger('api')
-api_logger.setLevel(logging.DEBUG)
+api_logger.setLevel(logging.INFO)
 api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 
-def validate_user(user_id):
-    jwt_id = get_jwt_identity()
-    if jwt_id is not None and jwt_id != user_id:
-        raise api_exceptions.UnauthorizedUserException
-    if user_service.get_user_by_id(user_id) is None:
-        return api_exceptions.UnauthorizedUserException
-
+#---------------------------------------------------------------------------
+#   Exception Handlers
+#---------------------------------------------------------------------------
 @api_bp.errorhandler(api_exceptions.UnauthorizedUserException)
 def handle_unauthorized_user(exception):
     api_logger.error(exception)
@@ -102,12 +104,24 @@ def handle_kgr_reviews_not_found_exception(exception):
     api_logger.error(exception)
     return make_response(jsonify({'message': exception.message}), exception.code)
 
+#---------------------------------------------------------------------------
+#   API health check
+#---------------------------------------------------------------------------
 @api_bp.route('/ping', methods=['GET'])
 def ping():
     api_logger.info(f"[{datetime.now()}]: Ping API") 
     return make_response(jsonify({'message': 'API ok'}), 200)
 
-# -------------- Authentication --------------
+#---------------------------------------------------------------------------
+#   Authentication & User Endpoints
+#---------------------------------------------------------------------------
+def validate_user(user_id):
+    jwt_id = get_jwt_identity()
+    if jwt_id is not None and jwt_id != user_id:
+        raise api_exceptions.UnauthorizedUserException
+    if user_service.get_user_by_id(user_id) is None:
+        return api_exceptions.UnauthorizedUserException
+    
 @api_bp.route('/login', methods=['POST'])
 def login():
     api_logger.info(f"[{datetime.now()}]: Login User")
@@ -146,13 +160,12 @@ def logout():
     unset_jwt_cookies(resp)
     return resp, 200
 
-
 @api_bp.route("/users", methods=['POST', 'OPTIONS'])
 def create_user():
     if request.method == 'OPTIONS':
         # Handle OPTIONS request (preflight)
         headers = {
-            'Access-Control-Allow-Origin': 'http://localhost:3000',  # Adjust origin accordingly
+            'Access-Control-Allow-Origin': 'http://localhost:3000',
             'Access-Control-Allow-Methods': 'POST',
             'Access-Control-Allow-Headers': 'Content-Type'
         }
@@ -164,7 +177,7 @@ def create_user():
     api_utils.validate_form(registration_form)
     user = user_service.create_user(request.form)
     response = make_response(jsonify({'user_data': user }), 201)
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')  # Adjust origin accordingly
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
     return response
 
 @api_bp.route('/users/<string:user_id>', methods=['GET'])
@@ -193,7 +206,9 @@ def delete_user(user_id):
     user_service.delete_user(user_id)
     return make_response(jsonify({'message': 'user deleted'}), 204)
 
-# -------------- Analysis --------------
+#---------------------------------------------------------------------------
+#   Analysis Endpoints
+#---------------------------------------------------------------------------
 @api_bp.route('/users/<string:user_id>/analyze', methods=['POST'])
 @jwt_required(optional=True)
 def analyze_reviews(user_id):
@@ -210,6 +225,14 @@ def analyze_reviews(user_id):
     analyzed_reviews = review_service.analyze_reviews(user_id, reviews, feature_model, sentiment_model)
     return make_response(jsonify(analyzed_reviews), 200)
 
+@api_bp.route('/performance/analyze', methods=['POST'])
+@jwt_required()
+def test_analyisis_performance():
+    if request.json is None:
+        return make_response(jsonify({'message': 'no body'}), 406)
+    reviews = request.json
+    review_service.test_performance(reviews)
+    return make_response(jsonify({'message': 'ok'}), 200)
 
 @api_bp.route('/users/<string:user_id>/analyze/top-sentiments', methods=['POST'])
 @jwt_required(optional=True)
@@ -237,20 +260,19 @@ def topUserFeaturesByAppNames(user_id):
 @api_bp.route('/users/<string:user_id>/applications/<string:app_id>/statistics', methods=['GET'])
 @jwt_required(optional=True)
 def statistics(user_id, app_id):
-    api_logger.info(f"[{datetime.now()}]: Analyze User {user_id} Reviews")
+    api_logger.info(f"[{datetime.now()}]: Get User {user_id} statistics")
     validate_user(user_id)
-
-    # Check if request has query parameters
     if not request.args or ('start_date' not in request.args and 'end_date' not in request.args):
         return make_response(jsonify({'message': 'start_date or end_date parameter is missing'}), 400)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-
     statistics = application_service.get_app_statistics(app_id, start_date, end_date)
     return make_response(jsonify(statistics), 200)
 
-# -------------- Applications --------------
+#---------------------------------------------------------------------------
+#   Application Endpoints
+#---------------------------------------------------------------------------
 @api_bp.route('/applications/directory', methods=['GET'])
 @jwt_required(optional=True)
 def get_applications_from_directory():
@@ -285,8 +307,6 @@ def get_application_data_from_directory(app_name):
     directory_application = application_service.get_application_from_directory(app_name)
     return make_response(jsonify(directory_application), 200)
 
-
-
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
 @jwt_required(optional=True)
 def get_applications(user_id):
@@ -303,9 +323,6 @@ def get_applications(user_id):
             "total_pages": total_pages
         }
         return make_response(jsonify(response_data), 200)
-
-
-
 
 @api_bp.route('/users/<string:user_id>/applications', methods=['POST'])
 @jwt_required(optional=True)
@@ -364,7 +381,9 @@ def get_application_features(user_id, application_id):
     features = application_service.get_application_features(application_id)
     return make_response(features, 200)
 
-# -------------- Reviews --------------
+#---------------------------------------------------------------------------
+#   Review Endpoints
+#---------------------------------------------------------------------------
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews', methods=['POST'])
 @jwt_required()
 def create_review(user_id, application_id):
