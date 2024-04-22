@@ -228,10 +228,7 @@ def analyze_reviews(user_id):
 @api_bp.route('/performance/analyze', methods=['POST'])
 @jwt_required()
 def test_analyisis_performance():
-    if request.json is None:
-        return make_response(jsonify({'message': 'no body'}), 406)
-    reviews = request.json
-    review_service.test_performance(reviews)
+    review_service.test_performance(int(request.args.get('iterations', 1)), int(request.args.get('dataset_size', 1)))
     return make_response(jsonify({'message': 'ok'}), 200)
 
 @api_bp.route('/users/<string:user_id>/analyze/top-sentiments', methods=['POST'])

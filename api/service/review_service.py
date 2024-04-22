@@ -15,7 +15,7 @@ import math
 import logging
 import openpyxl
 import statistics
-
+import random
 
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
@@ -242,10 +242,37 @@ def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
     return hub_response['analyzed_reviews']
 
 
+def generate_random_reviews(input_file, 
+                            total_reviews=100):
+    with open(input_file, 'r') as dataset:
+        data = json.load(dataset)
 
-def test_performance(reviews_json):
-    output_file = "performance_results.xlsx"
-    
+    all_reviews = []
+    for app in data:
+        if app.get('reviews', None) is not None:
+            for review in app['reviews']:
+                all_reviews.append(review)
+
+    random.shuffle(all_reviews)
+
+    selected_reviews = all_reviews[:total_reviews]
+    # simplified_reviews = []
+    complete_reviews = []
+
+    for rev in selected_reviews:
+        # simplified_review = {'reviewId': rev['reviewId'], 'review': rev['review']}
+        # simplified_reviews.append(simplified_review)
+        complete_reviews.append(rev)
+
+    return complete_reviews
+
+
+def test_performance(number_of_iterations, dataset_size):
+    output_file = f"{dataset_size}_reviews_{number_of_iterations}_iterations_performance_results.xlsx"
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(current_directory, 'big_dataset.json')
+    reviews_json = generate_random_reviews(dataset_path, dataset_size)
+
     wb = openpyxl.Workbook()
 
     review_response_dtos = []
@@ -253,23 +280,66 @@ def test_performance(reviews_json):
         review_response_dtos.append(extract_review_dto_from_json(review_json))    
     for review_dto in review_response_dtos:
         check_review_splitting(review_dto)
-    
+
     versions = ['v0']
     feature_models = ["transfeatex", "t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
     sentiment_models = ["BERT", "BETO","GPT-3.5"]
 
     for version in versions:
-        ws = wb.create_sheet(title=version)
-        ws.append(["Feature Model", "Sentiment Model", "Average time for 5 executions (seconds)"])
+        
+        ws = wb.create_sheet(title=f"{version} with {len(reviews_json)} reviews")
+        ws.append(["Feature Model",
+                   "Sentiment Model", 
+                   f"Average sentence feature extraction time for {number_of_iterations} iterations (seconds)", 
+                   f"Average sentence sentiment analysis time for {number_of_iterations} iterations (seconds)",
+                   f"Average sentence sentiment and feature analysis time for {number_of_iterations} iterations (seconds)",
+                   f"Average review analysis time for {number_of_iterations} iterations (seconds)"])
+        
+        for col in ws.columns:
+            max_length = 0
+            for cell in col:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            adjusted_width = (max_length + 2) * 1.2
+            ws.column_dimensions[col[0].column_letter].width = adjusted_width
+        
         for feature_model in feature_models:
             for sentiment_model in sentiment_models:
                 execution_times = []
-                for _ in range(5):
-                    analyzed_reviews = send_to_hub_for_analysis(review_response_dtos, feature_model, sentiment_model, version)
-                    time = analyzed_reviews['execution_time']
-                    execution_times.append(time)
-                avg_time = statistics.mean(execution_times)
-                ws.append([feature_model, sentiment_model, avg_time])
+                sentiment_analysis_times = []
+                feature_execution_times = []
+                sentiment_and_feature_analysis_times = []
+                for _ in range(number_of_iterations):
+                    hub_response = send_to_hub_for_performance(review_response_dtos, feature_model, sentiment_model, version)
+                    execution_times.append(hub_response['total_analysis_time'])
+                    for rev in hub_response['reviews']:
+                        for sentence in rev['sentences']:
+                            if sentence.get('sentence_sentiment_analysis_time', None) is not None:
+                                sentiment_analysis_times.append(sentence.get('sentence_sentiment_analysis_time'))
+                            if sentence.get('sentence_feature_analysis_time', None) is not None:
+                                feature_execution_times.append(sentence.get('sentence_feature_analysis_time'))
+                            sentiment_and_feature_analysis_times.append(sentence.get('sentence_total_analysis_time'))
+
+                avg_total_execution_time = statistics.mean(execution_times)
+
+                if len(sentiment_analysis_times) > 0:
+                    avg_sentiment_analysis_time = statistics.mean(sentiment_analysis_times)
+                else: 
+                    avg_sentiment_analysis_time = 'X'
+                
+                if len(feature_execution_times) > 0:
+                    avg_feature_extraction_time = statistics.mean(feature_execution_times)
+                else:
+                    avg_feature_extraction_time = 'X'
+
+                avg_sentiment_and_feature_extraction_time = statistics.mean(sentiment_and_feature_analysis_times)
+
+                ws.append([feature_model,
+                           sentiment_model,
+                           avg_feature_extraction_time, 
+                           avg_sentiment_analysis_time, 
+                           avg_sentiment_and_feature_extraction_time, 
+                           avg_total_execution_time])
 
     wb.save(output_file)
 
