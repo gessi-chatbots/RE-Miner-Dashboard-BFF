@@ -1,6 +1,6 @@
 from api import db
-from api.models import User, Review, user_reviews_application_association, user_review_association
-from sqlalchemy import insert, select, delete, exc, func
+from api.models import Review, user_reviews_application_association, user_review_association
+from sqlalchemy import select, delete, exc, func
 from typing import List
 from datetime import date, datetime
 import api.service.user_service as user_service
@@ -254,8 +254,21 @@ def analyze_reviews_v1(user_id, reviewsIds, feature_model, sentiment_model):
         for sentence in kr_review.sentences:
             sentences_dict_list.append({"id": sentence.id, "sentence": sentence.text})
     hub_response = send_to_hub_for_analysis(sentences_dict_list, feature_model, sentiment_model, 'v1')
-    send_reviews_to_kg(hub_response['analyzed_reviews'])
-    return hub_response['analyzed_reviews']
+    
+    for sentence in hub_response:
+        sentence_id = sentence.get('id')
+        review_id = sentence_id.split('_')[0]
+        for kr_review in kr_reviews:
+            if kr_review.reviewId == review_id:
+                for kr_sentence in kr_review.sentences: 
+                    if kr_sentence.id == sentence_id:
+                        if sentence.get('featureData') is not None and sentence.get('featureData').get('feature') is not None:
+                            kr_sentence.featureData = FeatureDTO(sentence.get('featureData').get('feature'))
+                        if sentence.get('sentimentData') is not None and sentence.get('sentimentData').get('sentiment') is not None:
+                            kr_sentence.sentimentData = SentimentDTO(sentence.get('sentimentData').get('sentiment'))
+    dict_reviews = [kr_review.to_dict() for kr_review in kr_reviews]
+    send_reviews_to_kg(dict_reviews)
+    return dict_reviews
 
 
 
@@ -364,7 +377,6 @@ def send_reviews_to_kg(reviews):
     try:
         headers = {'Content-type': 'application/json'}
         url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/reviews'
-        print(f"url {url}")
         response = requests.post(
             url,
             headers=headers,
