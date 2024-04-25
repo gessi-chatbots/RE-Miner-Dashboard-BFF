@@ -3,8 +3,7 @@ import api.service.user_service as user_service
 import api.service.review_service as review_service
 import api.exceptions as api_exceptions
 import requests
-import json
-from datetime import date, datetime
+from datetime import datetime
 import os
 from api import db
 from api.models import Application, User, user_reviews_application_association

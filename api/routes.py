@@ -225,6 +225,22 @@ def analyze_reviews(user_id):
     analyzed_reviews = review_service.analyze_reviews(user_id, reviews, feature_model, sentiment_model)
     return make_response(jsonify(analyzed_reviews), 200)
 
+@api_bp.route('/users/<string:user_id>/analyze/v1', methods=['POST'])
+@jwt_required(optional=True)
+def analyze_reviews_v1(user_id):
+    api_logger.info(f"[{datetime.now()}]: Analyze User {user_id} Reviews")
+    if not request.args \
+            or ('sentiment_model' not in request.args.keys() and 'feature_model' not in request.args.keys()):
+                return "Lacking model and textual data in proper tag.", 400
+    feature_model = request.args.get('feature_model')
+    sentiment_model = request.args.get('sentiment_model')
+    validate_user(user_id)
+    if request.json is None:
+        return make_response(jsonify({'message': 'no body'}), 406)
+    reviews = request.json
+    analyzed_reviews = review_service.analyze_reviews_v1(user_id, reviews, feature_model, sentiment_model)
+    return make_response(jsonify(analyzed_reviews), 200)
+
 @api_bp.route('/performance/analyze', methods=['POST'])
 @jwt_required()
 def test_analyisis_performance():
@@ -444,3 +460,4 @@ def analyze_review(user_id, application_id, review_id):
     api_utils.validate_form(analyze_form)
     review = review_service.analyze_review(user_id, application_id, review_id)
     return make_response(jsonify(review), 201)
+

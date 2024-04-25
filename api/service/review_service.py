@@ -241,6 +241,18 @@ def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
     send_reviews_to_kg(hub_response['analyzed_reviews'])
     return hub_response['analyzed_reviews']
 
+def analyze_reviews_v1(user_id, reviewsIds, feature_model, sentiment_model):
+    # validate_reviews(user_id, reviewsIds)
+    kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
+    if kr_reviews is None:
+        raise api_exceptions.KGRReviewsNotFoundException()
+    for kr_review in kr_reviews:
+        check_review_splitting(kr_review)
+    hub_response = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model, 'v0')
+    send_reviews_to_kg(hub_response['analyzed_reviews'])
+    return hub_response['analyzed_reviews']
+
+
 
 def generate_random_reviews(input_file, 
                             total_reviews=100):
