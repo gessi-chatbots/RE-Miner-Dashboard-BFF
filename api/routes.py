@@ -12,6 +12,7 @@ import api.utils as api_utils
 import api.service.authentication_service as authentication_service
 import api.service.user_service as user_service
 import api.service.review_service as review_service
+import api.service.performance_service as performance_service
 import api.service.application_service as application_service
 import api.responses as api_responses
 import api.exceptions as api_exceptions
@@ -244,7 +245,7 @@ def analyze_reviews_v1(user_id):
 @api_bp.route('/performance/analyze', methods=['POST'])
 @jwt_required()
 def test_analyisis_performance():
-    review_service.test_performance(int(request.args.get('iterations', 1)), int(request.args.get('dataset_size', 1)))
+    performance_service.test_performance(int(request.args.get('iterations', 1)), int(request.args.get('dataset_size', 1)))
     return make_response(jsonify({'message': 'ok'}), 200)
 
 @api_bp.route('/users/<string:user_id>/analyze/top-sentiments', methods=['POST'])
