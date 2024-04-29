@@ -147,13 +147,13 @@ def single_model_benchmark(performance_workbook, number_of_iterations, review_da
     benchmark_dict = []
     benchmark_dict.extend(test_feature_models_performance(number_of_iterations, review_dataset))
     benchmark_dict.extend(test_sentiment_models_performance(number_of_iterations, review_dataset))
-    average_results = []
+    average_results = {}
      
     for benchmark in benchmark_dict:
         avg_total_execution_time = statistics.mean(benchmark['benchmark_results']['total_execution_times'])
-        avg_sentence_analysis_time = statistics.mean(benchmark['benchmark_results']['total_sentence_analysis_times'])
-        avg_task_analysis_time = statistics.mean(benchmark['benchmark_results']['total_task_analysis_times'])
-        average_results.append({
+        avg_sentence_analysis_time = statistics.mean(benchmark['benchmark_results']['sentences_results']['total_sentence_analysis_times'])
+        avg_task_analysis_time = statistics.mean(benchmark['benchmark_results']['sentences_results']['total_task_analysis_times'])
+        average_results.update({
             benchmark['model']: {
                 'avg_total_execution_time': avg_total_execution_time,
                 'avg_sentence_analysis_time': avg_sentence_analysis_time,
@@ -167,7 +167,7 @@ def single_model_benchmark(performance_workbook, number_of_iterations, review_da
                                 avg_task_analysis_time])
     return average_results
 
-def multimodel_single_process_benchmark(performance_workbook, number_of_iterations, single_model_results):
+def multimodel_single_process_benchmark(performance_workbook, number_of_iterations, single_model_results, review_qty):
     ws_multi_model_single_process = performance_workbook.create_sheet(title=f"Multi model Single Process analysis with {review_qty} reviews")
     ws_multi_model_single_process.append(["Feature Model",
                                         "Sentiment Model", 
@@ -253,7 +253,7 @@ def test_performance(number_of_iterations, dataset_size):
     # ------- Single Model Analysis -------
     results = single_model_benchmark(performance_workbook, number_of_iterations, review_dataset)
     # ------- Multi Model Analysis -------
-    multimodel_single_process_benchmark(performance_workbook, number_of_iterations, results)
+    multimodel_single_process_benchmark(performance_workbook, number_of_iterations, results, len(review_dataset))
     # multimodel_multi_process_benchmark(performance_workbook, number_of_iterations, results)
 
     output_file = f"{dataset_size}_reviews_{number_of_iterations}_iterations_performance_results.xlsx"
