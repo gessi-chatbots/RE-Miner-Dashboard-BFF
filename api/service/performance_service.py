@@ -10,11 +10,11 @@ import api.exceptions as api_exceptions
 #---------------------------------------------------------------------------
 #   Constants
 #---------------------------------------------------------------------------
-# FEATURE_MODELS = ["t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
-# SENTIMENT_MODELS = ["GPT-3.5"]
+FEATURE_MODELS = ["t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
+SENTIMENT_MODELS = ["GPT-3.5"]
 # versions = ['v0', 'v1']
-FEATURE_MODELS = ["transfeatex", "t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
-SENTIMENT_MODELS = ["BERT", "BETO","GPT-3.5"]
+# FEATURE_MODELS = ["transfeatex", "t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
+# SENTIMENT_MODELS = ["BERT", "BETO","GPT-3.5"]
 #---------------------------------------------------------------------------
 #---------------------------------------------------------------------------
 
@@ -207,26 +207,27 @@ def multimodel_single_process_benchmark(performance_workbook, number_of_iteratio
                         avg_sentiment_time, 
                         avg_total_execution_time])
 
-def multimodel_multi_process_benchmark(performance_workbook, number_of_iterations):
+def multimodel_multi_process_benchmark(performance_workbook, number_of_iterations, review_dataset):
+    review_qty = len(review_dataset)
     ws_multi_model_multi_process = performance_workbook.create_sheet(title=f"Multi model Multiple Process analysis with {review_qty} reviews")
     ws_multi_model_multi_process.append(["Feature Model",
                                         "Sentiment Model", 
                                         f"Average sentence feature extraction time for {number_of_iterations} iterations (seconds)", 
                                         f"Average sentence sentiment analysis time for {number_of_iterations} iterations (seconds)",
-                                        f"Average sentence sentiment and feature analysis time for {number_of_iterations} iterations (seconds)",
-                                        f"Average review analysis time for {number_of_iterations} iterations (seconds)"])
+                                        f"Average total execution time for {review_qty} reviews and {number_of_iterations} iterations (seconds)"],
+                                        )
 
     set_columns_width(ws_multi_model_multi_process)
-    '''
-    for feature_model in feature_models:
-        for sentiment_model in sentiment_models:
+
+    for feature_model in FEATURE_MODELS:
+        for sentiment_model in SENTIMENT_MODELS:
             execution_times = []
             sentiment_analysis_times = []
             feature_execution_times = []
             sentiment_and_feature_analysis_times = []
             for _ in range(number_of_iterations):
-                hub_response = send_to_hub_for_performance(review_response_dtos, feature_model, sentiment_model, version)
-                execution_times.append(hub_response['total_analysis_time'])
+                hub_response = send_to_hub_for_performance(review_dataset, feature_model, sentiment_model, hub_version='v1')
+                set_benchmark_results("model_dict", hub_response)
                 for rev in hub_response['reviews']:
                     for sentence in rev['sentences']:
                         if sentence.get('sentence_sentiment_analysis_time', None) is not None:
@@ -249,13 +250,13 @@ def multimodel_multi_process_benchmark(performance_workbook, number_of_iteration
 
             avg_sentiment_and_feature_extraction_time = statistics.mean(sentiment_and_feature_analysis_times)
 
-            ws.append([feature_model,
+            ws_multi_model_multi_process.append([feature_model,
                         sentiment_model,
                         avg_feature_extraction_time, 
                         avg_sentiment_analysis_time, 
                         avg_sentiment_and_feature_extraction_time, 
                         avg_total_execution_time])
-        '''
+
 
 #---------------------------------------------------------------------------
 #   Performance main function
@@ -263,12 +264,13 @@ def multimodel_multi_process_benchmark(performance_workbook, number_of_iteration
 
 def test_performance(number_of_iterations, dataset_size):
     review_dataset = generate_random_reviews(dataset_size)
+    review_ds = review_dataset
     performance_workbook = openpyxl.Workbook()
     # ------- Single Model Analysis -------
-    results = single_model_benchmark(performance_workbook, number_of_iterations, review_dataset)
+    # results = single_model_benchmark(performance_workbook, number_of_iterations, review_dataset)
     # ------- Multi Model Analysis -------
-    multimodel_single_process_benchmark(performance_workbook, number_of_iterations, results, len(review_dataset))
-    # multimodel_multi_process_benchmark(performance_workbook, number_of_iterations, results)
+    # multimodel_single_process_benchmark(performance_workbook, number_of_iterations, results, dataset_size)
+    multimodel_multi_process_benchmark(performance_workbook, number_of_iterations, review_ds)
 
     output_file = f"{dataset_size}_reviews_{number_of_iterations}_iterations_performance_results.xlsx"
     performance_workbook.save(output_file)
