@@ -69,8 +69,6 @@ def generate_random_reviews(total_reviews=100):
 
     return randomized_dataset
 
-
-
 def send_to_hub_for_performance(reviews, feature_model, sentiment_model, hub_version):
     endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze/performance'
     # api_logger.info(f"[{datetime.now()}]: HUB URL {endpoint_url}")
@@ -114,6 +112,7 @@ def test_sentiment_models_performance(number_of_iterations, dataset):
             hub_response = send_to_hub_for_performance(dataset, None, sentiment_model, None)
             set_benchmark_results(model_dict, hub_response)
         sentiment_results.append(model_dict)
+    return sentiment_results
 
 def test_feature_models_performance(number_of_iterations, dataset):
     feature_results = []
@@ -132,6 +131,7 @@ def test_feature_models_performance(number_of_iterations, dataset):
             hub_response = send_to_hub_for_performance(dataset, feature_model, sentiment_model=None, hub_version=None)
             set_benchmark_results(model_dict, hub_response)
         feature_results.append(model_dict)
+    return feature_results
 
 def single_model_benchmark(performance_workbook, number_of_iterations, review_dataset):
     review_qty = len(review_dataset)
