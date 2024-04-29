@@ -179,11 +179,12 @@ def multimodel_single_process_benchmark(performance_workbook, number_of_iteratio
     for feature_model in FEATURE_MODELS:
         feature_model_results = single_model_results[feature_model]
         avg_feature_time = feature_model_results.get('avg_task_analysis_time', 0)
+        avg_feature_total_execution_time = feature_model_results.get('avg_total_execution_time', 0)
         for sentiment_model in SENTIMENT_MODELS:
             sentiment_model_results = single_model_results[sentiment_model]
             
-            avg_total_execution_time = feature_model_results.get('avg_total_execution_time', 0) + sentiment_model_results.get('avg_total_execution_time', 0)
-            avg_sentiment_time = sentiment_model.get('avg_task_analysis_time', 0)
+            avg_total_execution_time = avg_feature_total_execution_time + sentiment_model_results.get('avg_total_execution_time', 0)
+            avg_sentiment_time = sentiment_model_results.get('avg_task_analysis_time', 0)
             avg_sentiment_and_feature_extraction_time = avg_sentiment_time + avg_feature_time
             
             ws_multi_model_single_process.append([feature_model,
