@@ -10,11 +10,11 @@ import api.exceptions as api_exceptions
 #---------------------------------------------------------------------------
 #   Constants
 #---------------------------------------------------------------------------
-FEATURE_MODELS = ["t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
-SENTIMENT_MODELS = ["GPT-3.5"]
+# FEATURE_MODELS = ["t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
+# SENTIMENT_MODELS = ["GPT-3.5"]
 # versions = ['v0', 'v1']
-# FEATURE_MODELS = ["transfeatex", "t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
-# SENTIMENT_MODELS = ["BERT", "BETO","GPT-3.5"]
+FEATURE_MODELS = ["transfeatex", "t-frex-bert-base-uncased", "t-frex-bert-large-uncased", "t-frex-roberta-base", "t-frex-roberta-large", "t-frex-xlnet-base-cased", "t-frex-xlnet-large-cased"]
+SENTIMENT_MODELS = ["BERT", "BETO","GPT-3.5"]
 #---------------------------------------------------------------------------
 #---------------------------------------------------------------------------
 
@@ -138,22 +138,8 @@ def test_feature_models_performance(number_of_iterations, dataset):
         feature_results.append(model_dict)
     return feature_results
 
-def single_model_benchmark(performance_workbook, number_of_iterations, review_dataset):
-    review_qty = len(review_dataset)
-    ws_single_model = performance_workbook.create_sheet(title=f"Single model analysis with {review_qty} reviews")
-    ws_single_model.append(['Language Model',
-                'Language Model task',
-                f'Average sentence execution time for {number_of_iterations} iterations',
-                f'Average review execution time for {number_of_iterations} iterations',
-                f'Average total execution time for {review_qty} reviews and {number_of_iterations} iterations'
-                ])
-    set_columns_width(ws_single_model)
-
-    benchmark_dict = []
-    benchmark_dict.extend(test_feature_models_performance(number_of_iterations, review_dataset))
-    benchmark_dict.extend(test_sentiment_models_performance(number_of_iterations, review_dataset))
+def compute_single_process_benchmark_statistics(benchmark_dict):
     average_results = {}
-     
     for benchmark in benchmark_dict:
         avg_total_execution_time = statistics.mean(benchmark['benchmark_results']['total_execution_times'])
         benchmark_reviews = benchmark['benchmark_results']['reviews']
@@ -168,16 +154,59 @@ def single_model_benchmark(performance_workbook, number_of_iterations, review_da
         avg_sentence_analysis_time = statistics.mean(sentence_analysis_times)
         average_results.update({
             benchmark['model']: {
+                'task': benchmark['task'],
                 'avg_total_execution_time': avg_total_execution_time,
                 'avg_sentence_analysis_time': avg_sentence_analysis_time,
                 'avg_review_analysis_time': avg_review_analysis_time
             }
         })
-        ws_single_model.append([benchmark['model'],
-                                benchmark['task'],
-                                avg_sentence_analysis_time, 
-                                avg_review_analysis_time, 
-                                avg_total_execution_time])
+    return average_results
+
+def compute_multiple_process_benchmark_statistics(benchmark_dict):
+    average_results = []
+    for benchmark in benchmark_dict:
+        avg_total_execution_time = statistics.mean(benchmark['benchmark_results']['total_execution_times'])
+        benchmark_reviews = benchmark['benchmark_results']['reviews']
+        review_analysis_times = [review['total_review_analysis_time'] for review in benchmark_reviews]
+        avg_review_analysis_time = statistics.mean(review_analysis_times)
+        benchmark_review_sentences = [review['sentences'] for review in benchmark_reviews]
+        sentence_analysis_times = []
+        for benchmark_review_sentence in benchmark_review_sentences:
+            for review_result in benchmark_review_sentence:
+                for result in review_result['total_sentence_analysis_times']:
+                    sentence_analysis_times.append(result)
+        avg_sentence_analysis_time = statistics.mean(sentence_analysis_times)
+        average_results.append({
+                'feature model': benchmark['feature_model'],
+                'sentiment model': benchmark['sentiment_model'],
+                'avg_total_execution_time': avg_total_execution_time,
+                'avg_sentence_analysis_time': avg_sentence_analysis_time,
+                'avg_review_analysis_time': avg_review_analysis_time
+            })
+    return average_results
+
+def single_model_benchmark(performance_workbook, number_of_iterations, review_dataset):
+    review_qty = len(review_dataset)
+    ws_single_model = performance_workbook.create_sheet(title=f"Single model analysis with {review_qty} reviews")
+    ws_single_model.append(['Language Model',
+                'Language Model task',
+                f'Average sentence execution time for {number_of_iterations} iterations',
+                f'Average review execution time for {number_of_iterations} iterations',
+                f'Average total execution time for {review_qty} reviews and {number_of_iterations} iterations'
+                ])
+    set_columns_width(ws_single_model)
+
+    benchmark_dict = []
+    benchmark_dict.extend(test_feature_models_performance(number_of_iterations, review_dataset))
+    benchmark_dict.extend(test_sentiment_models_performance(number_of_iterations, review_dataset))
+    average_results = compute_single_process_benchmark_statistics(benchmark_dict)
+     
+    for res in average_results:
+        ws_single_model.append([res,
+                                average_results[res]['task'],
+                                average_results[res]['avg_sentence_analysis_time'], 
+                                average_results[res]['avg_review_analysis_time'],   
+                                average_results[res]['avg_total_execution_time']])
     return average_results
 
 def multimodel_single_process_benchmark(performance_workbook, number_of_iterations, single_model_results, review_qty):
@@ -219,43 +248,30 @@ def multimodel_multi_process_benchmark(performance_workbook, number_of_iteration
 
     set_columns_width(ws_multi_model_multi_process)
 
+    results = []
     for feature_model in FEATURE_MODELS:
         for sentiment_model in SENTIMENT_MODELS:
-            execution_times = []
-            sentiment_analysis_times = []
-            feature_execution_times = []
-            sentiment_and_feature_analysis_times = []
             for _ in range(number_of_iterations):
                 hub_response = send_to_hub_for_performance(review_dataset, feature_model, sentiment_model, hub_version='v1')
-                set_benchmark_results("model_dict", hub_response)
-                for rev in hub_response['reviews']:
-                    for sentence in rev['sentences']:
-                        if sentence.get('sentence_sentiment_analysis_time', None) is not None:
-                            sentiment_analysis_times.append(sentence.get('sentence_sentiment_analysis_time'))
-                        if sentence.get('sentence_feature_analysis_time', None) is not None:
-                            feature_execution_times.append(sentence.get('sentence_feature_analysis_time'))
-                        sentiment_and_feature_analysis_times.append(sentence.get('sentence_total_analysis_time'))
-
-            avg_total_execution_time = statistics.mean(execution_times)
-
-            if len(sentiment_analysis_times) > 0:
-                avg_sentiment_analysis_time = statistics.mean(sentiment_analysis_times)
-            else: 
-                avg_sentiment_analysis_time = 'X'
-            
-            if len(feature_execution_times) > 0:
-                avg_feature_extraction_time = statistics.mean(feature_execution_times)
-            else:
-                avg_feature_extraction_time = 'X'
-
-            avg_sentiment_and_feature_extraction_time = statistics.mean(sentiment_and_feature_analysis_times)
-
-            ws_multi_model_multi_process.append([feature_model,
-                        sentiment_model,
-                        avg_feature_extraction_time, 
-                        avg_sentiment_analysis_time, 
-                        avg_sentiment_and_feature_extraction_time, 
-                        avg_total_execution_time])
+                model_dict = {
+                    "feature_model": feature_model,
+                    "sentiment_model": sentiment_model,
+                    "benchmark_results": {
+                          "total_execution_times": [],
+                          "reviews": [],      
+                        }
+                    }
+                set_benchmark_results(model_dict, hub_response)
+            results.append(model_dict)
+    
+    average_results = compute_multiple_process_benchmark_statistics(results)
+    for res in average_results:
+        ws_multi_model_multi_process.append([
+                res['feature model'],
+                res['sentiment model'],
+                res['avg_sentence_analysis_time'], 
+                res['avg_review_analysis_time'],   
+                res['avg_total_execution_time']])
 
 
 #---------------------------------------------------------------------------
@@ -267,9 +283,9 @@ def test_performance(number_of_iterations, dataset_size):
     review_ds = review_dataset
     performance_workbook = openpyxl.Workbook()
     # ------- Single Model Analysis -------
-    # results = single_model_benchmark(performance_workbook, number_of_iterations, review_dataset)
+    results = single_model_benchmark(performance_workbook, number_of_iterations, review_dataset)
     # ------- Multi Model Analysis -------
-    # multimodel_single_process_benchmark(performance_workbook, number_of_iterations, results, dataset_size)
+    multimodel_single_process_benchmark(performance_workbook, number_of_iterations, results, dataset_size)
     multimodel_multi_process_benchmark(performance_workbook, number_of_iterations, review_ds)
 
     output_file = f"{dataset_size}_reviews_{number_of_iterations}_iterations_performance_results.xlsx"
