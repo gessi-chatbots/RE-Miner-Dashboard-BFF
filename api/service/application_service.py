@@ -13,7 +13,7 @@ import logging
 
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
-api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
+# api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 
 def get_applications(user_id, page, page_size):
     user = user_service.get_user_by_id(user_id)

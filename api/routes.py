@@ -33,7 +33,7 @@ api_bp = Blueprint('api_bp', __name__)
 #---------------------------------------------------------------------------
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.INFO)
-api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
+# api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 
 #---------------------------------------------------------------------------
 #   Exception Handlers
