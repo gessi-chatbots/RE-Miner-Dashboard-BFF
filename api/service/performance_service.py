@@ -248,7 +248,7 @@ def multimodel_single_process_benchmark(performance_workbook, number_of_iteratio
             ws_multi_model_single_process.append([
                         feature_model,
                         sentiment_model,
-                        feature_model + '+' + sentiment_model, 
+                        feature_model + ' + ' + sentiment_model, 
                         avg_feature_time, 
                         avg_sentiment_time, 
                         avg_total_execution_time,
