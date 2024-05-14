@@ -3,8 +3,9 @@ from api.models import Review, user_reviews_application_association, user_review
 from sqlalchemy import select, delete, exc, func
 from typing import List
 from datetime import date, datetime
+from dotenv import load_dotenv
 import api.service.user_service as user_service
-import api.service.application_service as application_service
+import api.service.mobile_application_service as mobile_application_service
 import api.exceptions as api_exceptions
 import requests
 import nltk
@@ -17,7 +18,8 @@ import logging
 
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
-# api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
+load_dotenv()
+API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ["KNOWLEDGE_REPOSITORY_API_VERSION"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]  
 
 class FeatureDTO:
     def __init__(self, feature: str):
@@ -82,7 +84,7 @@ def add_to_db_session(new_review_entity, user_entity, application_entity):
 
 def save_review(user_id, application_id, review_id):
     user_entity = user_service.get_user_by_id(user_id)
-    application_entity = application_service.get_application_by_id(application_id)
+    application_entity = mobile_application_service.get_application_by_id(application_id)
     validate_user_and_application(user_entity, application_entity)
     
     mapped_review_data = {
@@ -122,9 +124,7 @@ def get_reviews_from_knowledge_repository(reviews):
             reviews_json.append(reviews)
         else:
             reviews_json = reviews
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/reviews'
-        print(f"url {url}")
-        response = requests.get(url, json=reviews_json)
+        response = requests.get(API_ROUTE, json=reviews_json)
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
@@ -254,9 +254,8 @@ def analyze_reviews_v1(user_id, reviewsIds, feature_model, sentiment_model):
 def send_reviews_to_kg(reviews):
     try:
         headers = {'Content-type': 'application/json'}
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/reviews'
         response = requests.post(
-            url,
+            API_ROUTE,
             headers=headers,
             json=(reviews if isinstance(reviews, list) else [reviews])
         )
@@ -366,7 +365,7 @@ def get_user_application_review_from_sql(user_id, application_id, review_id):
 def get_review(user_id, application_id, review_id):
     review_sql = get_review_by_review_id(user_id, application_id, review_id)
     review_kr = get_reviews_from_knowledge_repository({"reviewId": review_id})[0]
-    app = application_service.get_application_by_id(application_id)
+    app = mobile_application_service.get_application_by_id(application_id)
     add_sentences_to_review(review_kr)
     review_data = {
         "application": {
@@ -384,7 +383,7 @@ def get_review(user_id, application_id, review_id):
 
 def get_reviews_by_user_application(user_id, application_id):
     user_entity = user_service.get_user_by_id(user_id)
-    application_entity = application_service.get_application_by_id(application_id)
+    application_entity = mobile_application_service.get_application_by_id(application_id)
     validate_user_and_application(user_entity, application_entity)
     query = select(user_reviews_application_association.c.review_id).where(
         (user_reviews_application_association.c.user_id == user_id) &

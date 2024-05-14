@@ -3,17 +3,21 @@ import api.service.user_service as user_service
 import api.service.review_service as review_service
 import api.exceptions as api_exceptions
 import requests
-from datetime import datetime
+import logging
 import os
+
+from datetime import datetime
+from dotenv import load_dotenv
 from api import db
 from api.models import Application, User, user_reviews_application_association
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete
-import logging
 
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
 # api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
+load_dotenv()
+API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ["KNOWLEDGE_REPOSITORY_API_VERSION"] + os.environ["KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API"]  
 
 def get_applications(user_id, page, page_size):
     user = user_service.get_user_by_id(user_id)
@@ -67,8 +71,7 @@ def get_application_features(application_id):
     app = get_application_by_id(application_id)
     app_name_sanitized = app.name.replace(" ", "_")
     try:
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + f'/graph-db-api/applications/{app_name_sanitized}/features'
-        response = requests.get(url)
+        response = requests.get(API_ROUTE)
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 404:
@@ -132,9 +135,8 @@ def insert_application_in_sql_db(user_id, application_data):
 def send_applications_to_kg(applications):
     try:
         headers = {'Content-type': 'application/json'}
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/applications'
         response = requests.post(
-            url,
+            API_ROUTE,
             headers=headers,
             json=(applications if isinstance(applications, list) else [applications])
         )
@@ -234,8 +236,7 @@ def is_application_from_user(user_id, application_id):
 
 def get_applications_from_directory():
     try:
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/applications/names'
-        api_logger.info(f"[{datetime.now()}]: KG URL {url}")
+        url = API_ROUTE + '/basic-data'
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
@@ -248,7 +249,7 @@ def get_applications_from_directory():
 def get_application_from_directory(app_name):
     app_name_sanitized = app_name.replace(" ", "_")
     try:
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + f'/graph-db-api/applications/{app_name_sanitized}'
+        url = API_ROUTE + f'/{app_name_sanitized}'
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
@@ -261,7 +262,7 @@ def add_applications_from_directory_to_user(user_id, app_list):
     for app in app_list:
         try:
             app_name = app['app_name']
-            url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + f'/graph-db-api/applications/{app_name}'
+            url = API_ROUTE + f'/{app_name}'
             response = requests.get(url)
             if response.status_code == 200:
                 app_data = response.json()

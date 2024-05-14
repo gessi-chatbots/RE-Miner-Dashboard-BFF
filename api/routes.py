@@ -13,7 +13,7 @@ import api.service.authentication_service as authentication_service
 import api.service.user_service as user_service
 import api.service.review_service as review_service
 import api.service.performance_service as performance_service
-import api.service.application_service as application_service
+import api.service.mobile_application_service as mobile_application_service
 import api.responses as api_responses
 import api.exceptions as api_exceptions
 
@@ -256,7 +256,7 @@ def topUserSentimentsByAppNames(user_id):
     if request.json is None:
         return make_response(jsonify({'message': 'no body'}), 406)
     app_names = request.json.get('data')
-    top_sentiments = application_service.get_top_sentiments(user_id, app_names)
+    top_sentiments = mobile_application_service.get_top_sentiments(user_id, app_names)
     return make_response(jsonify(top_sentiments), 200)
 
 
@@ -268,7 +268,7 @@ def topUserFeaturesByAppNames(user_id):
     if request.json is None:
         return make_response(jsonify({'message': 'no body'}), 406)
     app_names = request.json.get('data')
-    top_features = application_service.get_top_features(user_id, app_names)
+    top_features = mobile_application_service.get_top_features(user_id, app_names)
     return make_response(jsonify(top_features), 200)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:app_id>/statistics', methods=['GET'])
@@ -281,7 +281,7 @@ def statistics(user_id, app_id):
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-    statistics = application_service.get_app_statistics(app_id, start_date, end_date)
+    statistics = mobile_application_service.get_app_statistics(app_id, start_date, end_date)
     return make_response(jsonify(statistics), 200)
 
 #---------------------------------------------------------------------------
@@ -291,7 +291,7 @@ def statistics(user_id, app_id):
 @jwt_required(optional=True)
 def get_applications_from_directory():
     api_logger.info(f"[{datetime.now()}]: Get all Applications from directory request")
-    directory_applications = application_service.get_applications_from_directory()
+    directory_applications = mobile_application_service.get_applications_from_directory()
     if len(directory_applications) == 0:
         return make_response('no content', 204)
     else:
@@ -311,14 +311,14 @@ def add_application_data_from_directory():
             return make_response({"message": "You must specify a list"}, 400)
         if len(applications_list) == 0:
             return make_response({"message": "no application list specified in body"}, 400)
-    app = application_service.add_applications_from_directory_to_user(user_id, applications_list)
+    app = mobile_application_service.add_applications_from_directory_to_user(user_id, applications_list)
     return make_response(app, 200)
 
 @api_bp.route('/applications/directory/<string:app_name>', methods=['GET'])
 @jwt_required()
 def get_application_data_from_directory(app_name):
     api_logger.info(f"[{datetime.now()}]: Get Application {app_name} directory data request")
-    directory_application = application_service.get_application_from_directory(app_name)
+    directory_application = mobile_application_service.get_application_from_directory(app_name)
     return make_response(jsonify(directory_application), 200)
 
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
@@ -328,7 +328,7 @@ def get_applications(user_id):
     validate_user(user_id)
     page = request.args.get('page', default=1, type=int)
     page_size = request.args.get('pageSize', default=8, type=int)
-    user_applications, total_pages = application_service.get_applications(user_id, page, page_size)
+    user_applications, total_pages = mobile_application_service.get_applications(user_id, page, page_size)
     if not user_applications:
         return make_response('no content', 204)
     else:
@@ -355,7 +355,7 @@ def create_applications(user_id):
     if len(applications_list) == 0:
         return make_response(jsonify(api_responses.responses['empty_applications_body']), 400)
     
-    applications = application_service.process_applications(user_id, applications_list)
+    applications = mobile_application_service.process_applications(user_id, applications_list)
     return make_response(jsonify(applications), 201)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['PUT', 'POST'])
@@ -363,9 +363,9 @@ def create_applications(user_id):
 def update_application(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: 'Edit User {user_id} Application {application_id} data")
     validate_user(user_id)
-    if not application_service.is_application_from_user(user_id, application_id):
+    if not mobile_application_service.is_application_from_user(user_id, application_id):
         return make_response(jsonify(api_responses.responses['not_user_application']), 401)
-    updated_application = application_service.edit_application(request.get_json())
+    updated_application = mobile_application_service.edit_application(request.get_json())
     return make_response(jsonify(updated_application), 200)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['DELETE'])
@@ -373,7 +373,7 @@ def update_application(user_id, application_id):
 def delete_application(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: 'Delete Application {application_id} data")
     validate_user(user_id)
-    application_service.delete_application(user_id, application_id)
+    mobile_application_service.delete_application(user_id, application_id)
     return make_response(jsonify(api_responses.responses['delete_application_success']), 204)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['GET'])
@@ -381,7 +381,7 @@ def delete_application(user_id, application_id):
 def get_application(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
     validate_user(user_id)
-    application_data = application_service.get_application(user_id, application_id)
+    application_data = mobile_application_service.get_application(user_id, application_id)
     if application_data is None:
         return make_response(jsonify({'message': 'Application not found for the given user'}), 404)
     return make_response(application_data, 200)
@@ -392,7 +392,7 @@ def get_application(user_id, application_id):
 def get_application_features(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
     validate_user(user_id)
-    features = application_service.get_application_features(application_id)
+    features = mobile_application_service.get_application_features(application_id)
     return make_response(features, 200)
 
 #---------------------------------------------------------------------------
