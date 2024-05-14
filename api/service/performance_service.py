@@ -222,14 +222,18 @@ def single_model_benchmark(performance_workbook, number_of_iterations, review_da
 def multimodel_single_process_benchmark(performance_workbook, number_of_iterations, single_model_results, review_qty):
     ws_multi_model_single_process = performance_workbook.create_sheet(title=f"Multi model Single Process analysis with {review_qty} reviews")
     ws_multi_model_single_process.append(["Feature Model",
-                                        "Sentiment Model", 
+                                        "Sentiment Model",
+                                        "Combination",
                                         f"Average sentence feature extraction time for {number_of_iterations} iterations (seconds)", 
                                         f"Average sentence sentiment analysis time for {number_of_iterations} iterations (seconds)",
-                                        f"Average total execution time for {review_qty} reviews and {number_of_iterations} iterations (seconds)"],
+                                        f"Average total execution time for {review_qty} reviews and {number_of_iterations} iterations (seconds)",
+                                        'Factor'],
                                         )
 
     
     set_columns_width(ws_multi_model_single_process)
+    min_avg_total_execution_time = float('inf')
+    rows = 0
     for feature_model in FEATURE_MODELS:
         feature_model_results = single_model_results[feature_model]
         avg_feature_time = feature_model_results.get('avg_sentence_analysis_time', 0)
@@ -237,14 +241,22 @@ def multimodel_single_process_benchmark(performance_workbook, number_of_iteratio
         for sentiment_model in SENTIMENT_MODELS:
             sentiment_model_results = single_model_results[sentiment_model]
             
-            avg_total_execution_time = avg_feature_total_execution_time + sentiment_model_results.get('avg_total_execution_time', 0)
             avg_sentiment_time = sentiment_model_results.get('avg_sentence_analysis_time', 0)
+            avg_total_execution_time = avg_feature_total_execution_time + avg_sentiment_time
+            min_avg_total_execution_time = min(min_avg_total_execution_time, avg_total_execution_time)
 
-            ws_multi_model_single_process.append([feature_model,
+            ws_multi_model_single_process.append([
+                        feature_model,
                         sentiment_model,
+                        feature_model + '+' + sentiment_model, 
                         avg_feature_time, 
                         avg_sentiment_time, 
-                        avg_total_execution_time])
+                        avg_total_execution_time,
+                        0.0])
+            rows+=1
+    
+    for row in ws_multi_model_single_process.iter_rows(min_row=2, max_row=rows + 1):
+        row[6].value = row[5].value/min_avg_total_execution_time
 
 def multimodel_multi_process_benchmark(performance_workbook, number_of_iterations, review_dataset):
     review_qty = len(review_dataset)
