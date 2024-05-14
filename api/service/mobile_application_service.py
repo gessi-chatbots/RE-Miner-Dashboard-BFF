@@ -137,7 +137,7 @@ def send_applications_to_kg(applications):
     try:
         headers = {'Content-type': 'application/json'}
         response = requests.post(
-            API_ROUTE,
+            API_ROUTE + '/',
             headers=headers,
             json=(applications if isinstance(applications, list) else [applications])
         )

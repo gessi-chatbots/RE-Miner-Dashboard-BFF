@@ -21,22 +21,35 @@ api_logger.setLevel(logging.DEBUG)
 load_dotenv()
 API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ["KNOWLEDGE_REPOSITORY_API_VERSION"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]  
 
+class LanguageModelDTO:
+    def __init__(self, modelName: str):
+        self.modelName = modelName
+
+    def to_dict(self):
+        return {
+            "modelName": self.modelName,
+        }
+
 class FeatureDTO:
-    def __init__(self, feature: str):
+    def __init__(self, feature: str, languageModel: LanguageModelDTO):
         self.feature = feature
+        self.languageModel = languageModel
 
     def to_dict(self):
         return {
             "feature": self.feature,
+            "languageModel":self.languageModel.to_dict() if self.languageModel is not None else None,
         }
 
 class SentimentDTO:
-    def __init__(self, sentiment: str):
+    def __init__(self, sentiment: str, languageModel: LanguageModelDTO):
         self.sentiment = sentiment
+        self.languageModel = languageModel
 
     def to_dict(self):
         return {
             "sentiment": self.sentiment,
+            "languageModel":self.languageModel.to_dict() if self.languageModel is not None else None,
         }
 
 class SentenceDTO:
@@ -140,7 +153,7 @@ def extract_review_dto_from_json(review_json):
     app_identifier = review_json.get('applicationId')
     id = review_json.get('reviewId')
     body = review_json.get('review')
-    sentences_json = review_json    .get('sentences')
+    sentences_json = review_json.get('sentences')
     date = review_json.get('date')
     sentences = []
     if sentences_json is not None:
@@ -211,7 +224,7 @@ def send_to_hub_for_analysis(reviews, feature_model, sentiment_model, hub_versio
         api_logger.info(f"[{datetime.now()}]: HUB unnexpected response {response.status_code} {response}")
         raise api_exceptions.HUBException()
     
-def analyze_reviews(user_id, reviewsIds, feature_model, sentiment_model):
+def analyze_reviews(reviewsIds, feature_model, sentiment_model):
     # validate_reviews(user_id, reviewsIds)
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
     if kr_reviews is None:
@@ -248,7 +261,6 @@ def analyze_reviews_v1(user_id, reviewsIds, feature_model, sentiment_model):
     dict_reviews = [kr_review.to_dict() for kr_review in kr_reviews]
     send_reviews_to_kg(dict_reviews)
     return dict_reviews
-
 
 
 def send_reviews_to_kg(reviews):
