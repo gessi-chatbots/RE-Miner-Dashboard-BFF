@@ -234,7 +234,7 @@ def analyze_reviews(reviewsIds, feature_model, sentiment_model):
     for kr_review in kr_reviews:
         check_review_splitting(kr_review)
     hub_response = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model, 'v0')
-    send_reviews_to_kg(hub_response['analyzed_reviews'])
+    insert_reviews_in_kg(hub_response['analyzed_reviews'])
     return hub_response['analyzed_reviews']
 
 def analyze_reviews_v1(user_id, reviewsIds, feature_model, sentiment_model):
@@ -261,15 +261,15 @@ def analyze_reviews_v1(user_id, reviewsIds, feature_model, sentiment_model):
                         if sentence.get('sentimentData') is not None and sentence.get('sentimentData').get('sentiment') is not None:
                             kr_sentence.sentimentData = SentimentDTO(sentence.get('sentimentData').get('sentiment'))
     dict_reviews = [kr_review.to_dict() for kr_review in kr_reviews]
-    send_reviews_to_kg(dict_reviews)
+    insert_reviews_in_kg(dict_reviews)
     return dict_reviews
 
 
-def send_reviews_to_kg(reviews):
+def insert_reviews_in_kg(reviews):
     try:
         headers = {'Content-type': 'application/json'}
         response = requests.post(
-            API_ROUTE,
+            API_ROUTE + '/',
             headers=headers,
             json=(reviews if isinstance(reviews, list) else [reviews])
         )
