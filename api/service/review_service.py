@@ -19,7 +19,8 @@ import logging
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
 load_dotenv()
-API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ["KNOWLEDGE_REPOSITORY_API_VERSION"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]  
+# API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ["KNOWLEDGE_REPOSITORY_API_VERSION"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]  
+API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]  
 
 class LanguageModelDTO:
     def __init__(self, modelName: str):
@@ -129,7 +130,6 @@ def validate_reviews(user_id, id_dicts):
         if review.id not in user_review_ids:
             raise api_exceptions.ReviewNotFromUserException(review_id=review.review_id, user_id=user_id)
 
-# TODO make a kr service
 def get_reviews_from_knowledge_repository(reviews):
     try:
         reviews_json = []
@@ -137,7 +137,9 @@ def get_reviews_from_knowledge_repository(reviews):
             reviews_json.append(reviews)
         else:
             reviews_json = reviews
-        response = requests.get(API_ROUTE, json=reviews_json)
+        response = requests.get(
+            API_ROUTE + '/list', 
+            json=[rev['reviewId'] for rev in reviews])
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
