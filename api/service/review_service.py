@@ -19,7 +19,7 @@ import logging
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
 load_dotenv()
-API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ["KNOWLEDGE_REPOSITORY_API_VERSION"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]  
+API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ["KNOWLEDGE_REPOSITORY_API_VERSION"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]  
 
 class FeatureDTO:
     def __init__(self, feature: str):
