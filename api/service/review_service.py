@@ -237,7 +237,7 @@ def analyze_reviews(reviewsIds, feature_model, sentiment_model):
     insert_reviews_in_kg(hub_response['analyzed_reviews'])
     return hub_response['analyzed_reviews']
 
-def analyze_reviews_v1(user_id, reviewsIds, feature_model, sentiment_model):
+def analyze_multiprocessing(reviewsIds, feature_model, sentiment_model):
     # validate_reviews(user_id, reviewsIds)
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
     if kr_reviews is None:
