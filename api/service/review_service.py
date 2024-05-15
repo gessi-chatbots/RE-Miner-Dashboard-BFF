@@ -139,7 +139,7 @@ def get_reviews_from_knowledge_repository(reviews):
             reviews_json = reviews
         response = requests.get(
             API_ROUTE + '/list', 
-            json=[rev['reviewId'] for rev in reviews])
+            json=[rev for rev in reviews])
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
@@ -378,7 +378,7 @@ def get_user_application_review_from_sql(user_id, application_id, review_id):
 
 def get_review(user_id, application_id, review_id):
     review_sql = get_review_by_review_id(user_id, application_id, review_id)
-    review_kr = get_reviews_from_knowledge_repository({"reviewId": review_id})[0]
+    review_kr = get_reviews_from_knowledge_repository([review_id])[0]
     app = mobile_application_service.get_application_by_id(application_id)
     add_sentences_to_review(review_kr)
     review_data = {
@@ -405,7 +405,7 @@ def get_reviews_by_user_application(user_id, application_id):
     )
     results = db.session.execute(query).fetchall()
     user_reviews_ids = [result[0] for result in results]
-    reviews_request = [{"reviewId":get_review_by_id(id).review_id} for id in user_reviews_ids]
+    reviews_request = [get_review_by_id(id).review_id for id in user_reviews_ids]
     reviews_kr = get_reviews_from_knowledge_repository(reviews_request)
 
     data = {
@@ -449,7 +449,7 @@ def get_reviews_by_user(user_id, page, page_size):
     reviews_entities = [db.session.query(Review).filter_by(id=result[0]).first() for result in results]
     application_ids = [result[1] for result in results]
 
-    reviews_request = [{"reviewId": review.review_id} for review in reviews_entities]
+    reviews_request = [review.review_id for review in reviews_entities]
     reviews_kr = get_reviews_from_knowledge_repository(reviews_request)
     
     reviews = []
