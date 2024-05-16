@@ -164,15 +164,12 @@ def logout():
 @api_bp.route("/users", methods=['POST', 'OPTIONS'])
 def create_user():
     if request.method == 'OPTIONS':
-        # Handle OPTIONS request (preflight)
         headers = {
             'Access-Control-Allow-Origin': 'http://localhost:3000',
             'Access-Control-Allow-Methods': 'POST',
             'Access-Control-Allow-Headers': 'Content-Type'
         }
         return ('', 204, headers)
-    
-    # Actual POST request handling
     api_logger.info(f"[{datetime.now()}]: Register User")
     registration_form = api_forms.RegistrationForm(request.form)
     api_utils.validate_form(registration_form)
