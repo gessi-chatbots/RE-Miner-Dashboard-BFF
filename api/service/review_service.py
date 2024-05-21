@@ -139,7 +139,7 @@ def get_reviews_from_knowledge_repository(reviews):
             reviews_json = reviews
         response = requests.get(
             API_ROUTE + '/list', 
-            json=[rev for rev in reviews])
+            json=[rev['reviewId'] for rev in reviews])
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
