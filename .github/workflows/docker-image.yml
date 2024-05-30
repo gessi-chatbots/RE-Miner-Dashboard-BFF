@@ -1,0 +1,39 @@
+name: Docker Compose CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out the repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker images
+      run: |
+        docker-compose -f docker-compose.yml build
+        docker-compose -f docker-compose.yml push
+
+    - name: Deploy to server
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+        SERVER_HOSTNAME: ${{ secrets.SERVER_HOSTNAME }}
+        SERVER_PATH: ${{ secrets.SERVER_PATH }}
+      run: |
+        echo "$SSH_PRIVATE_KEY" | ssh-add -
+        ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOSTNAME "cd $SERVER_PATH && git pull && docker-compose up --build -d"
