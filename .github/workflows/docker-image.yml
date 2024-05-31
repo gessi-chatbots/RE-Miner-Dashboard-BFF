@@ -1,39 +1,34 @@
-name: Docker Compose CI/CD
+name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 jobs:
-  build-and-deploy:
+
+  build:
+
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out the repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag kg_repository:$(date +%s)
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      uses: docker/setup-buildx-action@v2
 
-    - name: Login to DockerHub
-      uses: docker/login-action@v1
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push Docker images
-      run: |
-        docker-compose -f docker-compose.yml build
-        docker-compose -f docker-compose.yml push
-
-    - name: Deploy to server
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-        SERVER_HOSTNAME: ${{ secrets.SERVER_HOSTNAME }}
-        SERVER_PATH: ${{ secrets.SERVER_PATH }}
-      run: |
-        echo "$SSH_PRIVATE_KEY" | ssh-add -
-        ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOSTNAME "cd $SERVER_PATH && git pull && docker-compose up --build -d"
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: mtiessler/re_miner_dashboard_bff:latest
