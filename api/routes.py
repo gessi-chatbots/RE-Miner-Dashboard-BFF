@@ -16,7 +16,7 @@ import api.service.performance_service as performance_service
 import api.service.mobile_application_service as mobile_application_service
 import api.responses as api_responses
 import api.exceptions as api_exceptions
-
+import sys
 #---------------------------------------------------------------------------
 #   API Versioning
 #---------------------------------------------------------------------------
@@ -34,7 +34,10 @@ api_bp = Blueprint('api_bp', __name__)
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.INFO)
 # api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
-
+handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+api_logger.addHandler(handler)
 #---------------------------------------------------------------------------
 #   Exception Handlers
 #---------------------------------------------------------------------------
@@ -289,6 +292,9 @@ def statistics(user_id, app_id):
 def get_applications_from_directory():
     api_logger.info(f"[{datetime.now()}]: Get all Applications from directory request")
     directory_applications = mobile_application_service.get_applications_from_directory()
+    if directory_applications is None:
+        api_logger.info("None")
+        return make_response("No applications found", 404)
     if len(directory_applications) == 0:
         return make_response('no content', 204)
     else:
