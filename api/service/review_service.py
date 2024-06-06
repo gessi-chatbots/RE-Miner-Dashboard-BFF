@@ -203,7 +203,6 @@ def add_sentences_to_review(review):
     except IndexError: # NLTK sometimes splits randomly
             sentence_id = f"{review.reviewId}_{index + 1}"
             review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=sentence))
-
     
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model, hub_version):
     endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze' +  '/' + hub_version
@@ -234,6 +233,7 @@ def analyze_reviews(reviewsIds, feature_model, sentiment_model):
     for kr_review in kr_reviews:
         check_review_splitting(kr_review)
     hub_response = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model, 'v0')
+    # TODO create dtos with id and the analysis results to reduce statements in kg repo
     insert_reviews_in_kg(hub_response['analyzed_reviews'])
     return hub_response['analyzed_reviews']
 

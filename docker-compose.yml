@@ -1,12 +1,17 @@
 version: '3.9'
 
 services:
-  re_miner_bff:
-    container_name: re_miner_bff
-    build:
-      context: ./
-    env_file:
-      - ./docker.env 
+  re_miner_dashboard_bff:
+    image: mtiessler/re_miner_dashboard_bff:latest
+    environment:
+      SERVICE_PORT: 3003
+      DB_URL: "postgresql://postgres:pg_strong_password@db:5432/dashboard_db"
+      KNOWLEDGE_REPOSITORY_URL: "http://localhost:3003"
+      HUB_URL: "http://localhost:3002"
+      KNOWLEDGE_REPOSITORY_API: "/api"
+      KNOWLEDGE_REPOSITORY_API_VERSION: "/v1"
+      KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API: "/mobile-applications"
+      KNOWLEDGE_REPOSITORY_REVIEWS_API: "/reviews"
     ports:
       - "3001:3001"
     depends_on:
