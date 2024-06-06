@@ -235,7 +235,7 @@ def is_application_from_user(user_id, application_id):
 
 def get_applications_from_directory():
     try:
-        url = API_ROUTE + '/basic-data'
+        url = API_ROUTE + '/mobile-applications' + '/basic-data'
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
