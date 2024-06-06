@@ -5,8 +5,8 @@ services:
   kg_repository:
     image: mtiessler/kg_repository:latest
     environment:
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USERNAME: max_tiessler
+      DB_PASSWORD: S~A~YP.aJi)6BrY
     ports:
       - "3003:3003"
 
@@ -20,7 +20,7 @@ services:
     environment:
       SERVICE_PORT: 3003
       DB_URL: "postgresql://postgres:pg_strong_password@db:5432/dashboard_db"
-      KNOWLEDGE_REPOSITORY_URL: "http://kg_repository:3003"
+      KNOWLEDGE_REPOSITORY_URL: "http://re-miner-dashboard-bff-kg_repository-1:3003"
       HUB_URL: "http://localhost:3002"
       KNOWLEDGE_REPOSITORY_API: "/api"
       KNOWLEDGE_REPOSITORY_API_VERSION: "/v1"
