@@ -7,7 +7,6 @@ import logging
 import os
 
 from datetime import datetime
-from dotenv import load_dotenv
 from api import db
 from api.models import Application, User, user_reviews_application_association
 from sqlalchemy.exc import IntegrityError
@@ -16,7 +15,6 @@ from sqlalchemy import delete
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
 # api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
-load_dotenv('local.env')
 # API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ.get("KNOWLEDGE_REPOSITORY_API_VERSION") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
 API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
 

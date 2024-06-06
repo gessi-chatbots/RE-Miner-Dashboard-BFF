@@ -1,8 +1,4 @@
-# Use the official PostgreSQL image as a base
 FROM postgres:12
-
-# Copy custom configuration files if any
-# COPY ./path/to/your/config/file /etc/postgresql/postgresql.conf
 
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=pg_strong_password
@@ -10,6 +6,6 @@ ENV POSTGRES_DB=dashboard_db
 
 EXPOSE 5432
 
-VOLUME ["/var/lib/postgresql/data"]
+VOLUME ["/var/lib/postgresql/12/data"]
 
 CMD ["postgres"]
