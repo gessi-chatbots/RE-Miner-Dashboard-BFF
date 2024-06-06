@@ -244,6 +244,9 @@ def get_applications_from_directory():
         api_logger.info(url)
         response = requests.get(url)
         if response.status_code == 200:
+            api_logger.info(response)
+            if response.json is None:
+                raise api_exceptions.KGRApplicationsNotFoundException
             return response.json()
         elif response.status_code == 404:
             raise api_exceptions.KGRApplicationsNotFoundException
