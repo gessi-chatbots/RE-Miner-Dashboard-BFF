@@ -11,9 +11,14 @@ from api import db
 from api.models import Application, User, user_reviews_application_association
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete
+import sys
 
 api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.INFO)
+handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+api_logger.addHandler(handler)
 # api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 # API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ.get("KNOWLEDGE_REPOSITORY_API_VERSION") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
 API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
