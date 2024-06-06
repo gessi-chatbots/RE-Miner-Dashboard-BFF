@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete
 
 api_logger = logging.getLogger('api')
-api_logger.setLevel(logging.DEBUG)
+api_logger.setLevel(logging.INFO)
 # api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 # API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ.get("KNOWLEDGE_REPOSITORY_API_VERSION") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
 API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
@@ -235,7 +235,7 @@ def is_application_from_user(user_id, application_id):
 
 def get_applications_from_directory():
     try:
-        url = API_ROUTE + '/mobile-applications' + '/basic-data'
+        url = API_ROUTE + '/basic-data'
         api_logger.info(url)
         response = requests.get(url)
         if response.status_code == 200:
