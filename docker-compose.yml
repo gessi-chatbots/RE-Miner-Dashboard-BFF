@@ -1,12 +1,26 @@
 version: '3.9'
 
 services:
+
+  kg_repository:
+    image: mtiessler/kg_repository:latest
+    environment:
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3003:3003"
+
+  re_miner_hub:
+    image: mtiessler/re_miner_hub:latest
+    ports:
+      - "3002:3002"
+
   re_miner_dashboard_bff:
     image: mtiessler/re_miner_dashboard_bff:latest
     environment:
       SERVICE_PORT: 3003
       DB_URL: "postgresql://postgres:pg_strong_password@db:5432/dashboard_db"
-      KNOWLEDGE_REPOSITORY_URL: "http://localhost:3003"
+      KNOWLEDGE_REPOSITORY_URL: "http://kg_repository:3003"
       HUB_URL: "http://localhost:3002"
       KNOWLEDGE_REPOSITORY_API: "/api"
       KNOWLEDGE_REPOSITORY_API_VERSION: "/v1"
