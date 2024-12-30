@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from flask import request, jsonify, make_response, abort, Blueprint, send_file
 from flask_jwt_extended import (set_access_cookies, 
@@ -469,34 +470,94 @@ def analyze_review(user_id, application_id, review_id):
 #   New Features - Not official - Endpoints
 #---------------------------------------------------------------------------
 DATA_DIR = "./data"
+
 @api_bp.route('/trees', methods=['GET'])
 @jwt_required(optional=False)
 def get_tree_names():
-
     try:
         api_logger.info(f"[{datetime.now()}]: Fetch app names from data directory request")
 
         if not os.path.exists(DATA_DIR):
+            api_logger.error("Data directory does not exist.")
             return make_response({"message": "Data directory does not exist"}, 500)
 
         folders = [f for f in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, f))]
         app_names = []
+
+        # Extract the meaningful app names from folder names
         for folder in folders:
             parts = folder.split("_")
             if len(parts) > 3 and "_dt" in folder:
                 app_name = "_".join(parts[2:]).split("_dt")[0]
                 app_names.append(app_name)
+
         return jsonify({"apps": app_names}), 200
     except Exception as e:
-        api_logger.error(f"[{datetime.now()}]: Error fetching app names: {str(e)}")
+        api_logger.error(f"Error fetching app names: {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
+
 
 @api_bp.route('/trees/<string:app_name>', methods=['GET'])
 @jwt_required(optional=False)
 def get_app_tree(app_name):
-    return None
+    try:
+        api_logger.info(f"[{datetime.now()}]: Fetch clusters for app: {app_name}")
+
+        # Map app_name to folder name in `DATA_DIR`
+        app_folder = None
+        for folder in os.listdir(DATA_DIR):
+            if os.path.isdir(os.path.join(DATA_DIR, folder)) and app_name in folder:
+                app_folder = folder
+                break
+
+        if not app_folder:
+            api_logger.error(f"App folder '{app_name}' not found.")
+            return make_response({"message": f"App '{app_name}' not found"}, 404)
+
+        # Fetch clusters in the app folder
+        app_path = os.path.join(DATA_DIR, app_folder)
+        clusters = [f for f in os.listdir(app_path) if os.path.isdir(os.path.join(app_path, f))]
+
+        return jsonify({"clusters": clusters}), 200
+    except Exception as e:
+        api_logger.error(f"Error fetching clusters for app '{app_name}': {str(e)}")
+        return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
+
 
 @api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>', methods=['GET'])
 @jwt_required(optional=False)
 def get_app_tree_cluster(app_name, cluster_name):
-    return None
+    try:
+        api_logger.info(f"[{datetime.now()}]: Fetch JSON hierarchy for cluster: {cluster_name} in app: {app_name}")
+
+        # Map app_name to folder name in `DATA_DIR`
+        app_folder = None
+        for folder in os.listdir(DATA_DIR):
+            if os.path.isdir(os.path.join(DATA_DIR, folder)) and app_name in folder:
+                app_folder = folder
+                break
+
+        if not app_folder:
+            api_logger.error(f"App folder '{app_name}' not found.")
+            return make_response({"message": f"App '{app_name}' not found"}, 404)
+
+        # Check if cluster exists
+        cluster_path = os.path.join(DATA_DIR, app_folder, cluster_name)
+        if not os.path.exists(cluster_path) or not os.path.isdir(cluster_path):
+            api_logger.error(f"Cluster folder '{cluster_name}' not found in app '{app_name}'.")
+            return make_response({"message": f"Cluster '{cluster_name}' not found in app '{app_name}'"}, 404)
+
+        # Check for the JSON file in the cluster folder
+        json_file = os.path.join(cluster_path, f"{cluster_name}_hierarchy.json")
+        if not os.path.exists(json_file):
+            api_logger.error(f"JSON file for cluster '{cluster_name}' not found.")
+            return make_response({"message": f"JSON file not found for cluster '{cluster_name}'"}, 404)
+
+        # Read and return the JSON file content
+        with open(json_file, "r") as file:
+            json_content = file.read()
+
+        return jsonify({"data": json_content}), 200
+    except Exception as e:
+        api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
+        return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
