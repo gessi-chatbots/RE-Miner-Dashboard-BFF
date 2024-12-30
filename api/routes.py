@@ -472,7 +472,6 @@ def analyze_review(user_id, application_id, review_id):
 DATA_DIR = "./data"
 
 @api_bp.route('/trees', methods=['GET'])
-@jwt_required(optional=False)
 def get_tree_names():
     try:
         api_logger.info(f"[{datetime.now()}]: Fetch app names from data directory request")
@@ -481,29 +480,18 @@ def get_tree_names():
             api_logger.error("Data directory does not exist.")
             return make_response({"message": "Data directory does not exist"}, 500)
 
-        folders = [f for f in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, f))]
-        app_names = []
-
-        # Extract the meaningful app names from folder names
-        for folder in folders:
-            parts = folder.split("_")
-            if len(parts) > 3 and "_dt" in folder:
-                app_name = "_".join(parts[2:]).split("_dt")[0]
-                app_names.append(app_name)
+        app_names = [f for f in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, f))]
 
         return jsonify({"apps": app_names}), 200
     except Exception as e:
         api_logger.error(f"Error fetching app names: {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
-
-@api_bp.route('/trees/<string:app_name>', methods=['GET'])
-@jwt_required(optional=False)
+@api_bp.route('/trees/<string:app_name>/clusters', methods=['GET'])
 def get_app_tree(app_name):
     try:
         api_logger.info(f"[{datetime.now()}]: Fetch clusters for app: {app_name}")
 
-        # Map app_name to folder name in `DATA_DIR`
         app_folder = None
         for folder in os.listdir(DATA_DIR):
             if os.path.isdir(os.path.join(DATA_DIR, folder)) and app_name in folder:
@@ -514,9 +502,16 @@ def get_app_tree(app_name):
             api_logger.error(f"App folder '{app_name}' not found.")
             return make_response({"message": f"App '{app_name}' not found"}, 404)
 
-        # Fetch clusters in the app folder
         app_path = os.path.join(DATA_DIR, app_folder)
         clusters = [f for f in os.listdir(app_path) if os.path.isdir(os.path.join(app_path, f))]
+
+        def extract_cluster_number(cluster_name):
+            try:
+                return int(cluster_name.split("_")[1])
+            except (IndexError, ValueError):
+                return float('inf')  # Place malformed names at the end
+
+        clusters.sort(key=extract_cluster_number)
 
         return jsonify({"clusters": clusters}), 200
     except Exception as e:
@@ -525,7 +520,6 @@ def get_app_tree(app_name):
 
 
 @api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>', methods=['GET'])
-@jwt_required(optional=False)
 def get_app_tree_cluster(app_name, cluster_name):
     try:
         api_logger.info(f"[{datetime.now()}]: Fetch JSON hierarchy for cluster: {cluster_name} in app: {app_name}")
