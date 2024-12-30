@@ -465,3 +465,28 @@ def analyze_review(user_id, application_id, review_id):
     review = review_service.analyze_review(user_id, application_id, review_id)
     return make_response(jsonify(review), 201)
 
+#---------------------------------------------------------------------------
+#   New Features - Not official - Endpoints
+#---------------------------------------------------------------------------
+DATA_DIR = "./data"
+@api_bp.route('/trees', methods=['GET'])
+@jwt_required(optional=False)
+def get_tree_names():
+
+    try:
+        api_logger.info(f"[{datetime.now()}]: Fetch app names from data directory request")
+
+        if not os.path.exists(DATA_DIR):
+            return make_response({"message": "Data directory does not exist"}, 500)
+
+        folders = [f for f in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, f))]
+        app_names = []
+        for folder in folders:
+            parts = folder.split("_")
+            if len(parts) > 3 and "_dt" in folder:
+                app_name = "_".join(parts[2:]).split("_dt")[0]
+                app_names.append(app_name)
+        return jsonify({"apps": app_names}), 200
+    except Exception as e:
+        api_logger.error(f"[{datetime.now()}]: Error fetching app names: {str(e)}")
+        return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
