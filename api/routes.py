@@ -490,3 +490,13 @@ def get_tree_names():
     except Exception as e:
         api_logger.error(f"[{datetime.now()}]: Error fetching app names: {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
+
+@api_bp.route('/trees/<string:app_name>', methods=['GET'])
+@jwt_required(optional=False)
+def get_app_tree(app_name):
+    return None
+
+@api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>', methods=['GET'])
+@jwt_required(optional=False)
+def get_app_tree_cluster(app_name, cluster_name):
+    return None
