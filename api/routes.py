@@ -1,8 +1,8 @@
 import os
 from datetime import datetime
 from flask import request, jsonify, make_response, abort, Blueprint, send_file
-from flask_jwt_extended import (set_access_cookies, 
-                                set_refresh_cookies, 
+from flask_jwt_extended import (set_access_cookies,
+                                set_refresh_cookies,
                                 jwt_required,
                                 get_jwt_identity,
                                 unset_jwt_cookies)
@@ -114,7 +114,7 @@ def handle_kgr_reviews_not_found_exception(exception):
 #---------------------------------------------------------------------------
 @api_bp.route('/ping', methods=['GET'])
 def ping():
-    api_logger.info(f"[{datetime.now()}]: Ping API") 
+    api_logger.info(f"[{datetime.now()}]: Ping API")
     return make_response(jsonify({'message': 'API ok'}), 200)
 
 #---------------------------------------------------------------------------
@@ -126,7 +126,7 @@ def validate_user(user_id):
         raise api_exceptions.UnauthorizedUserException
     if user_service.get_user_by_id(user_id) is None:
         return api_exceptions.UnauthorizedUserException
-    
+
 @api_bp.route('/login', methods=['POST'])
 def login():
     api_logger.info(f"[{datetime.now()}]: Login User")
@@ -140,11 +140,11 @@ def login():
 
     access_token = authentication_service.generate_access_token(email)
     refresh_token = authentication_service.generate_refresh_token(email)
-    resp = jsonify({'user_data': user.json(), 
-                    'access_token': access_token, 
-                    'refresh_token': refresh_token }) 
+    resp = jsonify({'user_data': user.json(),
+                    'access_token': access_token,
+                    'refresh_token': refresh_token })
     set_access_cookies(resp, access_token)
-    set_refresh_cookies(resp, refresh_token) 
+    set_refresh_cookies(resp, refresh_token)
     resp.headers['X-Access-Token'] = access_token
     resp.headers['X-Refresh-Token'] = refresh_token
     return make_response(resp, 200)
@@ -152,7 +152,7 @@ def login():
 @api_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
-    api_logger.info(f"[{datetime.now()}]: Refresh token request") 
+    api_logger.info(f"[{datetime.now()}]: Refresh token request")
     resp = jsonify({'refresh': True})
     id = get_jwt_identity()
     set_access_cookies(resp, authentication_service.refresh_access_token(id))
@@ -160,7 +160,7 @@ def refresh():
 
 @api_bp.route('/logout', methods=['POST'])
 def logout():
-    api_logger.info(f"[{datetime.now()}]: Logout") 
+    api_logger.info(f"[{datetime.now()}]: Logout")
     resp = jsonify({'logout': True})
     unset_jwt_cookies(resp)
     return resp, 200
@@ -304,14 +304,14 @@ def get_applications_from_directory():
 @api_bp.route('/applications/directory', methods=['POST'])
 @jwt_required(optional=True)
 def add_application_data_from_directory():
-    api_logger.info(f"[{datetime.now()}]: Add applications from directory data request") 
+    api_logger.info(f"[{datetime.now()}]: Add applications from directory data request")
     if 'user_id' not in request.args:
         return make_response({"message": "no user id was specified"}, 400)
     user_id = request.args.get('user_id')
     applications_list = []
     if 'Content-Type' in request.headers and 'application/json' in request.headers['Content-Type']:
         applications_list = request.get_json()
-        if not isinstance(applications_list, list): 
+        if not isinstance(applications_list, list):
             return make_response({"message": "You must specify a list"}, 400)
         if len(applications_list) == 0:
             return make_response({"message": "no application list specified in body"}, 400)
@@ -358,7 +358,7 @@ def create_applications(user_id):
 
     if len(applications_list) == 0:
         return make_response(jsonify(api_responses.responses['empty_applications_body']), 400)
-    
+
     applications = mobile_application_service.process_applications(user_id, applications_list)
     return make_response(jsonify(applications), 201)
 
@@ -431,7 +431,7 @@ def get_all_user_reviews(user_id):
 @jwt_required()
 def get_all_user_application_reviews(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get User {user_id} Application {application_id} Reviews")
-    validate_user(user_id)  
+    validate_user(user_id)
     reviews_data = review_service.get_reviews_by_user_application(user_id, application_id)
     if reviews_data is None:
         return make_response(f'not found any reviews for user {user_id} and {application_id}', 404)
@@ -439,7 +439,7 @@ def get_all_user_application_reviews(user_id, application_id):
         return make_response('no content', 204)
     else:
         return make_response(jsonify(reviews_data), 200)
-    
+
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['GET'])
 @jwt_required(optional=True)
 def get_review(user_id, application_id, review_id):
@@ -467,7 +467,7 @@ def analyze_review(user_id, application_id, review_id):
     return make_response(jsonify(review), 201)
 
 #---------------------------------------------------------------------------
-#   New Features - Not official - Endpoints
+#   New Features - Experimental - Endpoints
 #---------------------------------------------------------------------------
 DATA_DIR = "./data"
 
