@@ -518,39 +518,30 @@ def get_app_tree(app_name):
         api_logger.error(f"Error fetching clusters for app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
+global_nodes = []
 
-
-def transform_json(node):
-    def process_children(children):
-        transformed_children = []
-        for child in children:
-            transformed_child = transform_json(child)
-            if transformed_child:
-                transformed_children.append(transformed_child)
-        return transformed_children
-
-    if "label" in node:
-        return {
+def transform_json(node, parent_distance=0):
+    if "label" in node: # L Node
+        l_node = {
             "id": node["id"],
             "label": node["label"],
-            "distance": node.get("distance", None),
-            "children": process_children(node.get("children", []))
+            "distance": parent_distance,
+            "children": []
         }
+        global_nodes.insert(l_node["id"], l_node)
+        return
+    else: # Root or N node
+        for child in node["children"]:
+            transform_json(child, node["distance"])
 
-    if "children" in node:
-        children = process_children(node["children"])
-        if children:
-            return {"distance": node.get("distance", None), "children": children}
+def generate_new_json_tree(sorted_nodes):
+    for i in range(len(sorted_nodes) - 1):
+        parent_node = sorted_nodes[i]
+        child_node = sorted_nodes[i + 1]
+        parent_node["children"].append(child_node)
 
-    return None
+    return sorted_nodes[0]
 
-def transform_json_root(node):
-    root = {
-        "id": node.get("id"),
-        "distance": node.get("distance", None),
-        "children": transform_json(node).get("children", [])
-    }
-    return root
 
 
 @api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>', methods=['GET'])
@@ -573,7 +564,6 @@ def get_app_tree_cluster(app_name, cluster_name):
             api_logger.error(f"Cluster folder '{cluster_name}' not found in app '{app_name}'.")
             return make_response({"message": f"Cluster '{cluster_name}' not found in app '{app_name}'"}, 404)
 
-        # Check for the JSON file in the cluster folder
         json_file = os.path.join(cluster_path, f"{cluster_name}_hierarchy.json")
         if not os.path.exists(json_file):
             api_logger.error(f"JSON file for cluster '{cluster_name}' not found.")
@@ -582,9 +572,9 @@ def get_app_tree_cluster(app_name, cluster_name):
         with open(json_file, "r") as file:
             json_content = json.load(file)
 
-        transformed_json = transform_json_root(json_content)
-
-        return jsonify({"data": transformed_json}), 200
+        transformed_json = transform_json(json_content)
+        sorted_nodes = sorted(global_nodes, key=lambda x: x["distance"], reverse=True)
+        return jsonify(generate_new_json_tree(sorted_nodes)), 200
     except Exception as e:
         api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
