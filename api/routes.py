@@ -519,12 +519,45 @@ def get_app_tree(app_name):
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
 
+
+def transform_json(node):
+    def process_children(children):
+        transformed_children = []
+        for child in children:
+            transformed_child = transform_json(child)
+            if transformed_child:
+                transformed_children.append(transformed_child)
+        return transformed_children
+
+    if "label" in node:
+        return {
+            "id": node["id"],
+            "label": node["label"],
+            "distance": node.get("distance", None),
+            "children": process_children(node.get("children", []))
+        }
+
+    if "children" in node:
+        children = process_children(node["children"])
+        if children:
+            return {"distance": node.get("distance", None), "children": children}
+
+    return None
+
+def transform_json_root(node):
+    root = {
+        "id": node.get("id"),
+        "distance": node.get("distance", None),
+        "children": transform_json(node).get("children", [])
+    }
+    return root
+
+
 @api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>', methods=['GET'])
 def get_app_tree_cluster(app_name, cluster_name):
     try:
         api_logger.info(f"[{datetime.now()}]: Fetch JSON hierarchy for cluster: {cluster_name} in app: {app_name}")
 
-        # Map app_name to folder name in `DATA_DIR`
         app_folder = None
         for folder in os.listdir(DATA_DIR):
             if os.path.isdir(os.path.join(DATA_DIR, folder)) and app_name in folder:
@@ -535,7 +568,6 @@ def get_app_tree_cluster(app_name, cluster_name):
             api_logger.error(f"App folder '{app_name}' not found.")
             return make_response({"message": f"App '{app_name}' not found"}, 404)
 
-        # Check if cluster exists
         cluster_path = os.path.join(DATA_DIR, app_folder, cluster_name)
         if not os.path.exists(cluster_path) or not os.path.isdir(cluster_path):
             api_logger.error(f"Cluster folder '{cluster_name}' not found in app '{app_name}'.")
@@ -547,11 +579,12 @@ def get_app_tree_cluster(app_name, cluster_name):
             api_logger.error(f"JSON file for cluster '{cluster_name}' not found.")
             return make_response({"message": f"JSON file not found for cluster '{cluster_name}'"}, 404)
 
-        # Read and return the JSON file content
         with open(json_file, "r") as file:
-            json_content = file.read()
+            json_content = json.load(file)
 
-        return jsonify({"data": json_content}), 200
+        transformed_json = transform_json_root(json_content)
+
+        return jsonify({"data": transformed_json}), 200
     except Exception as e:
         api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
