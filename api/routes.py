@@ -522,32 +522,34 @@ def get_app_tree(app_name):
 
 global_nodes = deque()
 
-def transform_json(node, parent_distance=0):
+def transform_json(node, parent_id=None, parent_distance=0):
     if "label" in node:  # L Node
         l_node = {
             "id": node["id"],
             "label": node["label"],
             "distance": parent_distance,
+            "parent_id": parent_id,
             "children": []
         }
-        global_nodes.append(l_node)  # Use deque's append method
+        global_nodes.append(l_node)
         return
     else:  # Root or N node
         for child in node["children"]:
-            transform_json(child, node["distance"])
+            transform_json(child, node["id"], node["distance"])
+    return global_nodes
 
 def generate_new_json_tree(sorted_nodes):
     generated_tree = {}
-    l_node = global_nodes.pop()
-    while global_nodes:
+    l_node = sorted_nodes.pop()
+    while sorted_nodes:
         if not l_node["children"]:
             del l_node["children"]
         children = []
         children.append(l_node)
         big_node = False
         while not big_node:
-            new_l_node = global_nodes.pop()
-            if new_l_node["distance"] == l_node["distance"]:
+            new_l_node = sorted_nodes.pop()
+            if l_node["parent_id"] == new_l_node["parent_id"]:
                 if not new_l_node["children"]:
                     del new_l_node["children"]
                 children.append(new_l_node)
@@ -588,8 +590,8 @@ def get_app_tree_cluster(app_name, cluster_name):
             json_content = json.load(file)
 
         transform_json(json_content)
-        # sorted_nodes = sorted(global_nodes, key=lambda x: x["distance"], reverse=True)
-        return jsonify(generate_new_json_tree(global_nodes)), 200
+        sorted_nodes = sorted(global_nodes, key=lambda x: x["distance"], reverse=True)
+        return jsonify(generate_new_json_tree(sorted_nodes)), 200
     except Exception as e:
         api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
