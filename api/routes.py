@@ -1,6 +1,8 @@
 import os
 from datetime import datetime
 from flask import request, jsonify, make_response, abort, Blueprint, send_file
+from collections import deque
+
 from flask_jwt_extended import (set_access_cookies,
                                 set_refresh_cookies,
                                 jwt_required,
@@ -518,31 +520,44 @@ def get_app_tree(app_name):
         api_logger.error(f"Error fetching clusters for app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
-global_nodes = []
+global_nodes = deque()
 
 def transform_json(node, parent_distance=0):
-    if "label" in node: # L Node
+    if "label" in node:  # L Node
         l_node = {
             "id": node["id"],
             "label": node["label"],
             "distance": parent_distance,
             "children": []
         }
-        global_nodes.insert(l_node["id"], l_node)
+        global_nodes.append(l_node)  # Use deque's append method
         return
-    else: # Root or N node
+    else:  # Root or N node
         for child in node["children"]:
             transform_json(child, node["distance"])
 
 def generate_new_json_tree(sorted_nodes):
-    for i in range(len(sorted_nodes) - 1):
-        parent_node = sorted_nodes[i]
-        child_node = sorted_nodes[i + 1]
-        parent_node["children"].append(child_node)
+    generated_tree = {}
+    l_node = global_nodes.pop()
+    while global_nodes:
+        if not l_node["children"]:
+            del l_node["children"]
+        children = []
+        children.append(l_node)
+        big_node = False
+        while not big_node:
+            new_l_node = global_nodes.pop()
+            if new_l_node["distance"] == l_node["distance"]:
+                if not new_l_node["children"]:
+                    del new_l_node["children"]
+                children.append(new_l_node)
+            else:
+                new_l_node["children"] = children
+                big_node = True
+                l_node = new_l_node
+    generated_tree = l_node
 
-    return sorted_nodes[0]
-
-
+    return generated_tree
 
 @api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>', methods=['GET'])
 def get_app_tree_cluster(app_name, cluster_name):
@@ -572,9 +587,9 @@ def get_app_tree_cluster(app_name, cluster_name):
         with open(json_file, "r") as file:
             json_content = json.load(file)
 
-        transformed_json = transform_json(json_content)
-        sorted_nodes = sorted(global_nodes, key=lambda x: x["distance"], reverse=True)
-        return jsonify(generate_new_json_tree(sorted_nodes)), 200
+        transform_json(json_content)
+        # sorted_nodes = sorted(global_nodes, key=lambda x: x["distance"], reverse=True)
+        return jsonify(generate_new_json_tree(global_nodes)), 200
     except Exception as e:
         api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
