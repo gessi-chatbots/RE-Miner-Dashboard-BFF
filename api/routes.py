@@ -536,7 +536,6 @@ def transform_json(node, parent_id=None, parent_distance=0):
     else:  # Root or N node
         for child in node["children"]:
             transform_json(child, node["id"], node["distance"])
-    return global_nodes
 
 def generate_new_json_tree(sorted_nodes):
     generated_tree = {}
@@ -591,7 +590,9 @@ def get_app_tree_cluster(app_name, cluster_name):
 
         transform_json(json_content)
         sorted_nodes = sorted(global_nodes, key=lambda x: x["distance"], reverse=True)
-        return jsonify(generate_new_json_tree(sorted_nodes)), 200
+        global_nodes.clear()
+        new_tree = generate_new_json_tree(sorted_nodes)
+        return jsonify(new_tree), 200
     except Exception as e:
         api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
