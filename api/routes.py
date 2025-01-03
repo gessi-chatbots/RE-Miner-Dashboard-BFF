@@ -520,45 +520,83 @@ def get_app_tree(app_name):
         api_logger.error(f"Error fetching clusters for app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
-global_nodes = deque()
 
-def transform_json(node, parent_id=None, parent_distance=0):
-    if "label" in node:  # L Node
-        l_node = {
+def generate_new_json_tree2(node, distance_threshold=0.1, accumulated_threshold=0, is_root=False):
+    ROOT_LABEL = "Root Node"
+    INTERMEDIATE_LABEL = "Intermediate Node"
+
+    if not node:
+        return None
+
+    if node.get("label") and not is_root:
+        return node
+
+    if is_root:
+        new_node = {
             "id": node["id"],
-            "label": node["label"],
-            "distance": parent_distance,
-            "parent_id": parent_id,
+            "label": ROOT_LABEL,
             "children": []
         }
-        global_nodes.append(l_node)
-        return
-    else:  # Root or N node
-        for child in node["children"]:
-            transform_json(child, node["id"], node["distance"])
+    else:
+        new_node = {}
 
-def generate_new_json_tree(sorted_nodes):
-    generated_tree = {}
-    l_node = sorted_nodes.pop()
-    while sorted_nodes:
-        if not l_node["children"]:
-            del l_node["children"]
-        children = []
-        children.append(l_node)
-        big_node = False
-        while not big_node:
-            new_l_node = sorted_nodes.pop()
-            if l_node["parent_id"] == new_l_node["parent_id"]:
-                if not new_l_node["children"]:
-                    del new_l_node["children"]
-                children.append(new_l_node)
+    new_node_children = []
+
+    for child in node.get("children", []):
+        if not child:
+            continue
+
+        delta_d = node.get("distance", 0) - child.get("distance", 0)
+        new_accumulated = accumulated_threshold + delta_d
+
+        processed_child = generate_new_json_tree2(
+            child,
+            distance_threshold,
+            new_accumulated,
+            is_root=False
+        )
+
+        if processed_child:
+            new_node_children.append(processed_child)
+
+    if is_root:
+        new_node["children"] = new_node_children
+        return new_node
+    elif accumulated_threshold > distance_threshold:
+        # Retain this node as an intermediate node
+        return {
+            "id": node["id"],
+            "label": INTERMEDIATE_LABEL,
+            "distance": node.get("distance", 0),
+            "children": new_node_children
+        }
+    elif new_node_children:
+        return {
+            "id": node["id"],
+            "children": new_node_children
+        }
+
+    return None
+
+def post_process_tree(node):
+    if not node or not isinstance(node, dict):
+        return None
+
+    processed_children = []
+    for child in node.get("children", []):
+        processed_child = post_process_tree(child)
+        if processed_child:
+            if not processed_child.get("label") and processed_child.get("children"):
+                processed_children.extend(processed_child["children"])
             else:
-                new_l_node["children"] = children
-                big_node = True
-                l_node = new_l_node
-    generated_tree = l_node
+                processed_children.append(processed_child)
 
-    return generated_tree
+    node["children"] = processed_children
+
+    if not node.get("label") and not processed_children:
+        return None
+
+    return node
 
 @api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>', methods=['GET'])
 def get_app_tree_cluster(app_name, cluster_name):
@@ -585,13 +623,16 @@ def get_app_tree_cluster(app_name, cluster_name):
             api_logger.error(f"JSON file for cluster '{cluster_name}' not found.")
             return make_response({"message": f"JSON file not found for cluster '{cluster_name}'"}, 404)
 
+        threshold = request.headers.get("distance_threshold")
+        if not threshold:
+            api_logger.warning(f"No threshold detected, setting it to 0")
+            threshold = 0.1
+
         with open(json_file, "r") as file:
             json_content = json.load(file)
 
-        transform_json(json_content)
-        sorted_nodes = sorted(global_nodes, key=lambda x: x["distance"], reverse=True)
-        global_nodes.clear()
-        new_tree = generate_new_json_tree(sorted_nodes)
+        new_tree = generate_new_json_tree2(node=json_content, is_root=True)
+        new_tree = post_process_tree(new_tree)
         return jsonify(new_tree), 200
     except Exception as e:
         api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
