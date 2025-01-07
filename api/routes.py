@@ -623,15 +623,14 @@ def get_app_tree_cluster(app_name, cluster_name):
             api_logger.error(f"JSON file for cluster '{cluster_name}' not found.")
             return make_response({"message": f"JSON file not found for cluster '{cluster_name}'"}, 404)
 
-        threshold = request.headers.get("distance_threshold")
-        if not threshold:
-            api_logger.warning(f"No threshold detected, setting it to 0")
-            threshold = 0.1
+        distance_threshold = request.headers.get("distance_threshold", 0.5)
+        # Log the thresholds
+        api_logger.info(f"Using distance_threshold: {distance_threshold} and sibling_threshold: {distance_threshold}")
 
         with open(json_file, "r") as file:
             json_content = json.load(file)
 
-        new_tree = generate_new_json_tree2(node=json_content, is_root=True)
+        new_tree = generate_new_json_tree2(node=json_content, is_root=True, distance_threshold=float(distance_threshold))
         new_tree = post_process_tree(new_tree)
         return jsonify(new_tree), 200
     except Exception as e:
