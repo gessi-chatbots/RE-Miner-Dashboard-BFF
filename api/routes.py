@@ -1,7 +1,10 @@
+import os
 from datetime import datetime
 from flask import request, jsonify, make_response, abort, Blueprint, send_file
-from flask_jwt_extended import (set_access_cookies, 
-                                set_refresh_cookies, 
+from collections import deque
+
+from flask_jwt_extended import (set_access_cookies,
+                                set_refresh_cookies,
                                 jwt_required,
                                 get_jwt_identity,
                                 unset_jwt_cookies)
@@ -113,7 +116,7 @@ def handle_kgr_reviews_not_found_exception(exception):
 #---------------------------------------------------------------------------
 @api_bp.route('/ping', methods=['GET'])
 def ping():
-    api_logger.info(f"[{datetime.now()}]: Ping API") 
+    api_logger.info(f"[{datetime.now()}]: Ping API")
     return make_response(jsonify({'message': 'API ok'}), 200)
 
 #---------------------------------------------------------------------------
@@ -125,7 +128,7 @@ def validate_user(user_id):
         raise api_exceptions.UnauthorizedUserException
     if user_service.get_user_by_id(user_id) is None:
         return api_exceptions.UnauthorizedUserException
-    
+
 @api_bp.route('/login', methods=['POST'])
 def login():
     api_logger.info(f"[{datetime.now()}]: Login User")
@@ -139,11 +142,11 @@ def login():
 
     access_token = authentication_service.generate_access_token(email)
     refresh_token = authentication_service.generate_refresh_token(email)
-    resp = jsonify({'user_data': user.json(), 
-                    'access_token': access_token, 
-                    'refresh_token': refresh_token }) 
+    resp = jsonify({'user_data': user.json(),
+                    'access_token': access_token,
+                    'refresh_token': refresh_token })
     set_access_cookies(resp, access_token)
-    set_refresh_cookies(resp, refresh_token) 
+    set_refresh_cookies(resp, refresh_token)
     resp.headers['X-Access-Token'] = access_token
     resp.headers['X-Refresh-Token'] = refresh_token
     return make_response(resp, 200)
@@ -151,7 +154,7 @@ def login():
 @api_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
-    api_logger.info(f"[{datetime.now()}]: Refresh token request") 
+    api_logger.info(f"[{datetime.now()}]: Refresh token request")
     resp = jsonify({'refresh': True})
     id = get_jwt_identity()
     set_access_cookies(resp, authentication_service.refresh_access_token(id))
@@ -159,7 +162,7 @@ def refresh():
 
 @api_bp.route('/logout', methods=['POST'])
 def logout():
-    api_logger.info(f"[{datetime.now()}]: Logout") 
+    api_logger.info(f"[{datetime.now()}]: Logout")
     resp = jsonify({'logout': True})
     unset_jwt_cookies(resp)
     return resp, 200
@@ -303,14 +306,14 @@ def get_applications_from_directory():
 @api_bp.route('/applications/directory', methods=['POST'])
 @jwt_required(optional=True)
 def add_application_data_from_directory():
-    api_logger.info(f"[{datetime.now()}]: Add applications from directory data request") 
+    api_logger.info(f"[{datetime.now()}]: Add applications from directory data request")
     if 'user_id' not in request.args:
         return make_response({"message": "no user id was specified"}, 400)
     user_id = request.args.get('user_id')
     applications_list = []
     if 'Content-Type' in request.headers and 'application/json' in request.headers['Content-Type']:
         applications_list = request.get_json()
-        if not isinstance(applications_list, list): 
+        if not isinstance(applications_list, list):
             return make_response({"message": "You must specify a list"}, 400)
         if len(applications_list) == 0:
             return make_response({"message": "no application list specified in body"}, 400)
@@ -357,7 +360,7 @@ def create_applications(user_id):
 
     if len(applications_list) == 0:
         return make_response(jsonify(api_responses.responses['empty_applications_body']), 400)
-    
+
     applications = mobile_application_service.process_applications(user_id, applications_list)
     return make_response(jsonify(applications), 201)
 
@@ -430,7 +433,7 @@ def get_all_user_reviews(user_id):
 @jwt_required()
 def get_all_user_application_reviews(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get User {user_id} Application {application_id} Reviews")
-    validate_user(user_id)  
+    validate_user(user_id)
     reviews_data = review_service.get_reviews_by_user_application(user_id, application_id)
     if reviews_data is None:
         return make_response(f'not found any reviews for user {user_id} and {application_id}', 404)
@@ -438,7 +441,7 @@ def get_all_user_application_reviews(user_id, application_id):
         return make_response('no content', 204)
     else:
         return make_response(jsonify(reviews_data), 200)
-    
+
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['GET'])
 @jwt_required(optional=True)
 def get_review(user_id, application_id, review_id):
@@ -466,37 +469,170 @@ def analyze_review(user_id, application_id, review_id):
     return make_response(jsonify(review), 201)
 
 #---------------------------------------------------------------------------
-#   New Features - Not official - Endpoints
+#   New Features - Experimental - Endpoints
 #---------------------------------------------------------------------------
 DATA_DIR = "./data"
-@api_bp.route('/trees', methods=['GET'])
-@jwt_required(optional=False)
-def get_tree_names():
 
+@api_bp.route('/trees', methods=['GET'])
+def get_tree_names():
     try:
         api_logger.info(f"[{datetime.now()}]: Fetch app names from data directory request")
 
         if not os.path.exists(DATA_DIR):
+            api_logger.error("Data directory does not exist.")
             return make_response({"message": "Data directory does not exist"}, 500)
 
-        folders = [f for f in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, f))]
-        app_names = []
-        for folder in folders:
-            parts = folder.split("_")
-            if len(parts) > 3 and "_dt" in folder:
-                app_name = "_".join(parts[2:]).split("_dt")[0]
-                app_names.append(app_name)
+        app_names = [f for f in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, f))]
+
         return jsonify({"apps": app_names}), 200
     except Exception as e:
-        api_logger.error(f"[{datetime.now()}]: Error fetching app names: {str(e)}")
+        api_logger.error(f"Error fetching app names: {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
-@api_bp.route('/trees/<string:app_name>', methods=['GET'])
-@jwt_required(optional=False)
+@api_bp.route('/trees/<string:app_name>/clusters', methods=['GET'])
 def get_app_tree(app_name):
+    try:
+        api_logger.info(f"[{datetime.now()}]: Fetch clusters for app: {app_name}")
+
+        app_folder = None
+        for folder in os.listdir(DATA_DIR):
+            if os.path.isdir(os.path.join(DATA_DIR, folder)) and app_name in folder:
+                app_folder = folder
+                break
+
+        if not app_folder:
+            api_logger.error(f"App folder '{app_name}' not found.")
+            return make_response({"message": f"App '{app_name}' not found"}, 404)
+
+        app_path = os.path.join(DATA_DIR, app_folder)
+        clusters = [f for f in os.listdir(app_path) if os.path.isdir(os.path.join(app_path, f))]
+
+        def extract_cluster_number(cluster_name):
+            try:
+                return int(cluster_name.split("_")[1])
+            except (IndexError, ValueError):
+                return float('inf')  # Place malformed names at the end
+
+        clusters.sort(key=extract_cluster_number)
+
+        return jsonify({"clusters": clusters}), 200
+    except Exception as e:
+        api_logger.error(f"Error fetching clusters for app '{app_name}': {str(e)}")
+        return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
+
+
+def generate_new_json_tree2(node, distance_threshold=0.1, accumulated_threshold=0, is_root=False):
+    ROOT_LABEL = "Root Node"
+    INTERMEDIATE_LABEL = "Intermediate Node"
+
+    if not node:
+        return None
+
+    if node.get("label") and not is_root:
+        return node
+
+    if is_root:
+        new_node = {
+            "id": node["id"],
+            "label": ROOT_LABEL,
+            "children": []
+        }
+    else:
+        new_node = {}
+
+    new_node_children = []
+
+    for child in node.get("children", []):
+        if not child:
+            continue
+
+        delta_d = node.get("distance", 0) - child.get("distance", 0)
+        new_accumulated = accumulated_threshold + delta_d
+
+        processed_child = generate_new_json_tree2(
+            child,
+            distance_threshold,
+            new_accumulated,
+            is_root=False
+        )
+
+        if processed_child:
+            new_node_children.append(processed_child)
+
+    if is_root:
+        new_node["children"] = new_node_children
+        return new_node
+    elif accumulated_threshold > distance_threshold:
+        # Retain this node as an intermediate node
+        return {
+            "id": node["id"],
+            "label": INTERMEDIATE_LABEL,
+            "distance": node.get("distance", 0),
+            "children": new_node_children
+        }
+    elif new_node_children:
+        return {
+            "id": node["id"],
+            "children": new_node_children
+        }
+
     return None
 
+def post_process_tree(node):
+    if not node or not isinstance(node, dict):
+        return None
+
+    processed_children = []
+    for child in node.get("children", []):
+        processed_child = post_process_tree(child)
+        if processed_child:
+            if not processed_child.get("label") and processed_child.get("children"):
+                processed_children.extend(processed_child["children"])
+            else:
+                processed_children.append(processed_child)
+
+    node["children"] = processed_children
+
+    if not node.get("label") and not processed_children:
+        return None
+
+    return node
+
 @api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>', methods=['GET'])
-@jwt_required(optional=False)
 def get_app_tree_cluster(app_name, cluster_name):
-    return None
+    try:
+        api_logger.info(f"[{datetime.now()}]: Fetch JSON hierarchy for cluster: {cluster_name} in app: {app_name}")
+
+        app_folder = None
+        for folder in os.listdir(DATA_DIR):
+            if os.path.isdir(os.path.join(DATA_DIR, folder)) and app_name in folder:
+                app_folder = folder
+                break
+
+        if not app_folder:
+            api_logger.error(f"App folder '{app_name}' not found.")
+            return make_response({"message": f"App '{app_name}' not found"}, 404)
+
+        cluster_path = os.path.join(DATA_DIR, app_folder, cluster_name)
+        if not os.path.exists(cluster_path) or not os.path.isdir(cluster_path):
+            api_logger.error(f"Cluster folder '{cluster_name}' not found in app '{app_name}'.")
+            return make_response({"message": f"Cluster '{cluster_name}' not found in app '{app_name}'"}, 404)
+
+        json_file = os.path.join(cluster_path, f"{cluster_name}_hierarchy.json")
+        if not os.path.exists(json_file):
+            api_logger.error(f"JSON file for cluster '{cluster_name}' not found.")
+            return make_response({"message": f"JSON file not found for cluster '{cluster_name}'"}, 404)
+
+        distance_threshold = request.args.get("distance_threshold", 0.5, type=float)
+        # Log the thresholds
+        api_logger.info(f"Using distance_threshold: {distance_threshold} and sibling_threshold: {distance_threshold}")
+
+        with open(json_file, "r") as file:
+            json_content = json.load(file)
+
+        new_tree = generate_new_json_tree2(node=json_content, is_root=True, distance_threshold=float(distance_threshold))
+        new_tree = post_process_tree(new_tree)
+        return jsonify(new_tree), 200
+    except Exception as e:
+        api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
+        return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
