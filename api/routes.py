@@ -623,7 +623,7 @@ def get_app_tree_cluster(app_name, cluster_name):
             api_logger.error(f"JSON file for cluster '{cluster_name}' not found.")
             return make_response({"message": f"JSON file not found for cluster '{cluster_name}'"}, 404)
 
-        distance_threshold = request.headers.get("distance_threshold", 0.5)
+        distance_threshold = request.args.get("distance_threshold", 0.5, type=float)
         # Log the thresholds
         api_logger.info(f"Using distance_threshold: {distance_threshold} and sibling_threshold: {distance_threshold}")
 
