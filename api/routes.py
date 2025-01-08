@@ -639,9 +639,8 @@ def get_app_tree_cluster(app_name, cluster_name):
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
 
-@api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>/reviews', methods=['POST'])
+@api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>/reviews', methods=['GET'])
 def get_selected_reviews(app_name, cluster_name):
-
     try:
         api_logger.info(f"[{datetime.now()}]: Get Selected Feature Reviews for app {app_name}, cluster {cluster_name}")
 
