@@ -90,6 +90,20 @@ class ReviewResponseDTO:
         }
 
 
+class ReviewFeatureDTO:
+    def __init__(self, id: str, review: str, features: List[FeatureDTO]):
+        self.reviewId = id
+        self.review = review
+        self.features = features
+
+    def to_dict(self):
+        return {
+            "reviewId": self.reviewId,
+            "review": self.review,
+            "features": [feature.to_dict() for feature in self.features]
+        }
+
+
 def validate_user_and_application(user_entity, application_entity):
     if not user_entity:
         raise api_exceptions.UserNotFoundException
@@ -176,7 +190,7 @@ def get_feature_reviews_from_knowledge_repository(features):
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
-                review_response_dtos.append(extract_review_dto_from_json(review_json))
+                review_response_dtos.append(extract_review_feature_dto_from_json(review_json).to_dict())
             return review_response_dtos
         elif response.status_code in (404, 204):
             raise api_exceptions.KGRReviewsNotFoundException
@@ -185,37 +199,27 @@ def get_feature_reviews_from_knowledge_repository(features):
         raise api_exceptions.KGRConnectionException()
 
 
+def extract_review_feature_dto_from_json(review_feature_json):
+    id = review_feature_json.get('reviewId')
+    body = review_feature_json.get('review')
+
+    features = []
+    feature_dtos = review_feature_json.get('featureDTOs', [])
+    for feature_dto_json in feature_dtos:
+        feature = feature_dto_json.get('feature')
+        model = feature_dto_json.get('languageModel').get('modelName')
+        feature_dto = FeatureDTO(feature=feature, languageModel=LanguageModelDTO(model))
+        features.append(feature_dto)
+
+    review_response_dto = ReviewFeatureDTO(id=id, review=body, features=features)
+    return review_response_dto
+
 def extract_review_dto_from_json(review_json):
     app_identifier = review_json.get('applicationId')
     id = review_json.get('reviewId')
     body = review_json.get('review')
     sentences_json = review_json.get('sentences')
     date = review_json.get('date')
-    sentences = []
-    if sentences_json is not None:
-        for sentence_json in sentences_json:
-            sentence = SentenceDTO(id=sentence_json.get('id'), sentimentData=None, featureData=None)
-            if 'sentimentData' in sentence_json:
-                sentimentData = sentence_json.get('sentimentData', None)
-                if sentimentData is not None:
-                    sentimentDTO = SentimentDTO(sentiment=sentimentData.get('sentiment'))
-                    sentence.sentimentData = sentimentDTO
-            if 'featureData' in sentence_json:
-                featureData = sentence_json.get('featureData', None)
-                if featureData is not None:
-                    featureDTO = FeatureDTO(feature=featureData.get('feature'))
-                    sentence.featureData = featureDTO
-            sentences.append(sentence)
-    review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, date=date,
-                                            sentences=sentences)
-    return review_response_dto
-
-def extract_review_feature_dto_from_json(review_feature_json):
-    app_identifier = review_feature_json.get('applicationId')
-    id = review_feature_json.get('reviewId')
-    body = review_feature_json.get('review')
-    sentences_json = review_feature_json.get('sentences')
-    date = review_feature_json.get('date')
     sentences = []
     if sentences_json is not None:
         for sentence_json in sentences_json:
@@ -564,21 +568,4 @@ def get_reviews_by_features(feature_list, page, page_size):
     reviews_request = [feature for feature in feature_list]
     reviews_kr = get_reviews_from_knowledge_repository(reviews_request)
 
-    reviews = []
-    '''
-    for review_kr, application_id in zip(reviews_kr, application_ids):
-        app = review_kr.applicationId.replace('_', " ")
-        review_data = {
-            "app_id": application_id,
-            "app_name": app,
-            "review_id": review_kr.reviewId,
-            "review": review_kr.review,
-            "date": review_kr.date
-        }
-        reviews.append(review_data)
-
-    total_pages = 0
-    if (page is not None and page_size is not None):
-        total_pages = math.ceil(total_reviews_count / page_size)
-    '''
-    return {'reviews': reviews, }
+    return {'reviews': reviews_kr}

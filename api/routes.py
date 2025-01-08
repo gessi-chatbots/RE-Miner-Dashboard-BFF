@@ -649,11 +649,7 @@ def get_selected_reviews(app_name, cluster_name):
             return make_response("Invalid or missing feature_list in request body", 400)
 
         reviews_data = review_service.get_feature_reviews_from_knowledge_repository(feature_list)
-
-        if 'reviews' in reviews_data and reviews_data['reviews']:
-            return make_response(jsonify(reviews_data), 200)
-        else:
-            return make_response(f'No reviews found', 204)
+        return make_response(jsonify(reviews_data), 200)
 
     except Exception as e:
         api_logger.error(f"Error occurred: {e}")
