@@ -649,7 +649,7 @@ def get_selected_reviews(app_name, cluster_name):
             return make_response("Invalid or missing feature_list in request body", 400)
 
         feature_list = data["feature_list"]
-        app_id = data["app_id"]
+        app_id = data["app_name"]
         reviews_data = review_service.get_feature_reviews_from_knowledge_repository(app_id, feature_list)
         return make_response(jsonify(reviews_data), 200)
 
