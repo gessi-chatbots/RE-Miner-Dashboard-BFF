@@ -639,7 +639,7 @@ def get_app_tree_cluster(app_name, cluster_name):
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
 
-@api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>/reviews', methods=['GET'])
+@api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>/reviews', methods=['POST'])
 def get_selected_reviews(app_name, cluster_name):
     try:
         api_logger.info(f"[{datetime.now()}]: Get Selected Feature Reviews for app {app_name}, cluster {cluster_name}")
@@ -649,8 +649,7 @@ def get_selected_reviews(app_name, cluster_name):
             return make_response("Invalid or missing feature_list in request body", 400)
 
         feature_list = data["feature_list"]
-        app_id = data["app_name"]
-        reviews_data = review_service.get_feature_reviews_from_knowledge_repository(app_id, feature_list)
+        reviews_data = review_service.get_feature_reviews_from_knowledge_repository(app_name, feature_list)
         return make_response(jsonify(reviews_data), 200)
 
     except Exception as e:
