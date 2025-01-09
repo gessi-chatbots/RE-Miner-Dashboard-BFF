@@ -644,11 +644,13 @@ def get_selected_reviews(app_name, cluster_name):
     try:
         api_logger.info(f"[{datetime.now()}]: Get Selected Feature Reviews for app {app_name}, cluster {cluster_name}")
 
-        feature_list = request.get_json()
-        if not feature_list or not isinstance(feature_list, list):
+        data = request.get_json()
+        if not data or "feature_list" not in data or not isinstance(data["feature_list"], list):
             return make_response("Invalid or missing feature_list in request body", 400)
 
-        reviews_data = review_service.get_feature_reviews_from_knowledge_repository(feature_list)
+        feature_list = data["feature_list"]
+        app_id = data["app_id"]
+        reviews_data = review_service.get_feature_reviews_from_knowledge_repository(app_id, feature_list)
         return make_response(jsonify(reviews_data), 200)
 
     except Exception as e:

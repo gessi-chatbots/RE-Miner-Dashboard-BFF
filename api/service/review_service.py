@@ -174,17 +174,21 @@ def get_reviews_from_knowledge_repository(reviews):
 
 def convert_to_pascal_case(feature):
     return ''.join(word.capitalize() for word in feature.split())
-
-def get_feature_reviews_from_knowledge_repository(features):
+def convert_app_id(app_id):
+    return None
+def get_feature_reviews_from_knowledge_repository(app_id, features):
     try:
         if not isinstance(features, list):
             features = [features]
 
         features_pascal_case = [convert_to_pascal_case(feature) for feature in features]
-
+        payload = {
+            "app_id": app_id,
+            "features": features_pascal_case
+        }
         response = requests.get(
             API_ROUTE + '/by-features',
-            json=features_pascal_case
+            json=payload
         )
 
         if response.status_code == 200:
