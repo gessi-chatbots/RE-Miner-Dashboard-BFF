@@ -186,7 +186,7 @@ def get_feature_reviews_from_knowledge_repository(app_id, features):
             "app_id": app_id,
             "features": features_pascal_case
         }
-        response = requests.get(
+        response = requests.post(
             API_ROUTE + '/by-features',
             json=payload
         )
