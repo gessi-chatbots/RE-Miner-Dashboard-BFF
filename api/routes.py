@@ -229,6 +229,7 @@ def analyze_reviews(user_id):
     analyzed_reviews = review_service.analyze_reviews(reviews, feature_model, sentiment_model)
     return make_response(jsonify(analyzed_reviews), 200)
 
+# TODO not done - Experimental feature
 @api_bp.route('/users/<string:user_id>/analyze/multiprocessing', methods=['POST'])
 @jwt_required(optional=True)
 def analyze_reviews_v1(user_id):
@@ -636,3 +637,21 @@ def get_app_tree_cluster(app_name, cluster_name):
     except Exception as e:
         api_logger.error(f"Error fetching JSON hierarchy for cluster '{cluster_name}' in app '{app_name}': {str(e)}")
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
+
+
+@api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>/reviews', methods=['POST'])
+def get_selected_reviews(app_name, cluster_name):
+    try:
+        api_logger.info(f"[{datetime.now()}]: Get Selected Feature Reviews for app {app_name}, cluster {cluster_name}")
+
+        data = request.get_json()
+        if not data or "feature_list" not in data or not isinstance(data["feature_list"], list):
+            return make_response("Invalid or missing feature_list in request body", 400)
+
+        feature_list = data["feature_list"]
+        reviews_data = review_service.get_feature_reviews_from_knowledge_repository(app_name, feature_list)
+        return make_response(jsonify(reviews_data), 200)
+
+    except Exception as e:
+        api_logger.error(f"Error occurred: {e}")
+        return make_response("Internal server error", 500)
