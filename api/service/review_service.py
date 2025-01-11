@@ -73,9 +73,10 @@ class SentenceDTO:
 
 
 class ReviewResponseDTO:
-    def __init__(self, id: str, applicationId: str, review: str, date: date, sentences: List[SentenceDTO]):
+    def __init__(self, id: str, applicationId: str, applicationPackage: str, review: str, date: date, sentences: List[SentenceDTO]):
         self.reviewId = id
         self.applicationId = applicationId
+        self.applicationPackage = applicationPackage
         self.review = review
         self.sentences = sentences
         self.date = date
@@ -154,6 +155,7 @@ def validate_reviews(user_id, id_dicts):
 def get_reviews_from_knowledge_repository(reviews):
     try:
         reviews_json = []
+
         if not isinstance(reviews, list):
             reviews_json.append(reviews)
         else:
@@ -222,6 +224,7 @@ def extract_review_feature_dto_from_json(review_feature_json):
 
 def extract_review_dto_from_json(review_json):
     app_identifier = review_json.get('applicationId')
+    app_package = review_json.get('applicationPackage', None)
     id = review_json.get('reviewId')
     body = review_json.get('review')
     sentences_json = review_json.get('sentences')
@@ -241,7 +244,11 @@ def extract_review_dto_from_json(review_json):
                     featureDTO = FeatureDTO(feature=featureData.get('feature'))
                     sentence.featureData = featureDTO
             sentences.append(sentence)
-    review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, date=date,
+    review_response_dto = ReviewResponseDTO(id=id,
+                                            applicationId=app_identifier,
+                                            applicationPackage=app_package,
+                                            review=body,
+                                            date=date,
                                             sentences=sentences)
     return review_response_dto
 
