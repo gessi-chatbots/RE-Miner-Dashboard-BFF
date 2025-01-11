@@ -172,8 +172,10 @@ def get_reviews_from_knowledge_repository(reviews):
         print(f"error {e}")
         raise api_exceptions.KGRConnectionException()
 
+
 def convert_to_pascal_case(feature):
     return ''.join(word.capitalize() for word in feature.split())
+
 
 def get_feature_reviews_from_knowledge_repository(app_id, features):
     try:
@@ -216,6 +218,7 @@ def extract_review_feature_dto_from_json(review_feature_json):
 
     review_response_dto = ReviewFeatureDTO(id=id, review=body, features=features)
     return review_response_dto
+
 
 def extract_review_dto_from_json(review_json):
     app_identifier = review_json.get('applicationId')
@@ -277,36 +280,51 @@ def add_sentences_to_review(review):
         review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=sentence))
 
 
-def send_to_hub_for_analysis(reviews, feature_model, sentiment_model, hub_version):
-    endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze' + '/' + hub_version
+def send_to_hub_for_analysis(
+        reviews,
+        feature_model=None,
+        sentiment_model=None,
+        sibling_threshold=None
+):
+    endpoint_base = os.environ.get('HUB_URL', 'http://127.0.0.1:3002')
+    endpoint_url = f"{endpoint_base}/analyze"
+
+    query_params = {}
+    if sentiment_model:
+        query_params['sentiment_model'] = sentiment_model
+    if feature_model:
+        query_params['feature_model'] = feature_model
+    if sibling_threshold is not None:
+        query_params['sibling_threshold'] = sibling_threshold
+
+    if query_params:
+        query_string = '&'.join(f"{key}={value}" for key, value in query_params.items())
+        endpoint_url = f"{endpoint_url}?{query_string}"
+
     api_logger.info(f"[{datetime.now()}]: HUB URL {endpoint_url}")
-    if sentiment_model and feature_model:
-        endpoint_url += f'?sentiment_model={sentiment_model}&feature_model={feature_model}'
-    elif sentiment_model:
-        endpoint_url += f'?sentiment_model={sentiment_model}'
-    elif feature_model:
-        endpoint_url += f'?feature_model={feature_model}'
-    if hub_version == 'v0':
-        reviews_dict = [review.to_dict() for review in reviews]
-    else:
-        reviews_dict = reviews
-    response = requests.post(endpoint_url, json=reviews_dict)
+
+    reviews_payload = [review.to_dict() for review in reviews]
+
+    response = requests.post(endpoint_url, json=reviews_payload)
 
     if response.status_code == 200:
-        return json.loads(response.content)
+        return response.json()
     else:
-        api_logger.info(f"[{datetime.now()}]: HUB unnexpected response {response.status_code} {response}")
-        raise api_exceptions.HUBException()
+        api_logger.error(f"[{datetime.now()}]: HUB unexpected response {response.status_code} {response.text}")
+        raise api_exceptions.HUBException(f"Error {response.status_code}: {response.text}")
 
 
-def analyze_reviews(reviewsIds, feature_model, sentiment_model):
+def analyze_reviews(reviewsIds, feature_model, sentiment_model, sibling_threshold):
     # validate_reviews(user_id, reviewsIds)
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
     if kr_reviews is None:
         raise api_exceptions.KGRReviewsNotFoundException()
     for kr_review in kr_reviews:
         check_review_splitting(kr_review)
-    hub_response = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model, 'v0')
+    hub_response = send_to_hub_for_analysis(kr_reviews,
+                                            feature_model,
+                                            sentiment_model,
+                                            sibling_threshold)
     # TODO create dtos with id and the analysis results to reduce statements in kg repo
     insert_reviews_in_kg(hub_response['analyzed_reviews'])
     return hub_response['analyzed_reviews']
