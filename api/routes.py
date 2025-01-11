@@ -639,10 +639,10 @@ def get_app_tree_cluster(app_name, cluster_name):
         return make_response({"message": "Internal Server Error", "error": str(e)}, 500)
 
 
-@api_bp.route('/trees/<string:app_name>/clusters/<string:cluster_name>/reviews', methods=['POST'])
-def get_selected_reviews(app_name, cluster_name):
+@api_bp.route('/<string:app_name>/reviews-filtered', methods=['POST'])
+def get_selected_reviews(app_name):
     try:
-        api_logger.info(f"[{datetime.now()}]: Get Selected Feature Reviews for app {app_name}, cluster {cluster_name}")
+        api_logger.info(f"[{datetime.now()}]: Get Selected Feature Reviews for app {app_name}")
 
         data = request.get_json()
         if not data or "feature_list" not in data or not isinstance(data["feature_list"], list):

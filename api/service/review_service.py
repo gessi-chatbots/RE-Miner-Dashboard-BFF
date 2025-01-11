@@ -160,11 +160,11 @@ def get_reviews_from_knowledge_repository(reviews):
             reviews_json = reviews
         response = requests.get(
             API_ROUTE + '/list',
-            json=[rev['reviewId'] for rev in reviews])
+            json=[rev for rev in reviews])
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
-                review_response_dtos.append(get_feature_reviews_from_knowledge_repository(review_json))
+                review_response_dtos.append(extract_review_dto_from_json(review_json))
             return review_response_dtos
         elif response.status_code == 404:
             raise api_exceptions.KGRReviewsNotFoundException
@@ -174,8 +174,7 @@ def get_reviews_from_knowledge_repository(reviews):
 
 def convert_to_pascal_case(feature):
     return ''.join(word.capitalize() for word in feature.split())
-def convert_app_id(app_id):
-    return None
+
 def get_feature_reviews_from_knowledge_repository(app_id, features):
     try:
         if not isinstance(features, list):
