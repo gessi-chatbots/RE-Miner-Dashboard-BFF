@@ -217,16 +217,22 @@ def delete_user(user_id):
 @jwt_required(optional=True)
 def analyze_reviews(user_id):
     api_logger.info(f"[{datetime.now()}]: Analyze User {user_id} Reviews")
-    if not request.args \
-            or ('sentiment_model' not in request.args.keys() and 'feature_model' not in request.args.keys()):
-                return "Lacking model and textual data in proper tag.", 400
+    
+    available_models = ['sentiment_model', 'feature_model', 'polarity_model', 'type_model', 'topic_model']
+    if not request.args or not any(model in request.args for model in available_models):
+        return make_response(jsonify({'message': 'At least one model type is required'}), 400)
+    
     feature_model = request.args.get('feature_model')
     sentiment_model = request.args.get('sentiment_model')
+    polarity_model = request.args.get('polarity_model')
+    type_model = request.args.get('type_model')
+    topic_model = request.args.get('topic_model')
+    #TODO add models to review service
     validate_user(user_id)
     if request.json is None:
         return make_response(jsonify({'message': 'no body'}), 406)
     reviews = request.json
-    analyzed_reviews = review_service.analyze_reviews(reviews, feature_model, sentiment_model)
+    analyzed_reviews = review_service.analyze_reviews(reviews, feature_model, sentiment_model, polarity_model, type_model, topic_model)
     return make_response(jsonify(analyzed_reviews), 200)
 
 # TODO not done - Experimental feature
