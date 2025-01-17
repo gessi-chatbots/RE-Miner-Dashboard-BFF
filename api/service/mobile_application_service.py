@@ -21,7 +21,7 @@ handler.setFormatter(formatter)
 api_logger.addHandler(handler)
 # api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 # API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ.get("KNOWLEDGE_REPOSITORY_API_VERSION") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
-API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
+API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL", "http://127.0.0.1:3003") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API", "/mobile-applications")  
 
 def get_applications(user_id, page, page_size):
     user = user_service.get_user_by_id(user_id)

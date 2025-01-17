@@ -42,7 +42,39 @@ class FeatureDTO:
             "feature": self.feature,
             "languageModel": self.languageModel.to_dict() if self.languageModel is not None else None,
         }
+    
+class PolarityDTO:
+    def __init__(self, polarity: str, languageModel: LanguageModelDTO):
+        self.polarity = polarity
+        self.languageModel = languageModel
 
+    def to_dict(self):
+        return {
+            "polarity": self.polarity,
+            "languageModel": self.languageModel.to_dict() if self.languageModel is not None else None,
+        }
+    
+class TypeDTO:
+    def __init__(self, type: str, languageModel: LanguageModelDTO):
+        self.type = type
+        self.languageModel = languageModel
+
+    def to_dict(self):
+        return {
+            "type": self.type,
+            "languageModel": self.languageModel.to_dict() if self.languageModel is not None else None,
+        }
+    
+class TopicDTO:
+    def __init__(self, topic: str, languageModel: LanguageModelDTO):
+        self.topic = topic
+        self.languageModel = languageModel
+
+    def to_dict(self):
+        return {
+            "topic": self.topic,
+            "languageModel": self.languageModel.to_dict() if self.languageModel is not None else None,
+        }
 
 class SentimentDTO:
     def __init__(self, sentiment: str, languageModel: LanguageModelDTO):
@@ -91,16 +123,22 @@ class ReviewResponseDTO:
 
 
 class ReviewFeatureDTO:
-    def __init__(self, id: str, review: str, features: List[FeatureDTO]):
+    def __init__(self, id: str, review: str, features: List[FeatureDTO], polarities: List[PolarityDTO], types: List[TypeDTO], topics: List[TopicDTO]):
         self.reviewId = id
         self.review = review
         self.features = features
+        self.polarities = polarities
+        self.types = types
+        self.topics = topics
 
     def to_dict(self):
         return {
             "reviewId": self.reviewId,
             "review": self.review,
-            "features": [feature.to_dict() for feature in self.features]
+            "features": [feature.to_dict() for feature in self.features],
+            "polarities": [polarity.to_dict() for polarity in self.polarities],
+            "types": [type.to_dict() for type in self.types],
+            "topics": [topic.to_dict() for topic in self.topics]
         }
 
 
@@ -214,7 +252,34 @@ def extract_review_feature_dto_from_json(review_feature_json):
         feature_dto = FeatureDTO(feature=feature, languageModel=LanguageModelDTO(model))
         features.append(feature_dto)
 
-    review_response_dto = ReviewFeatureDTO(id=id, review=body, features=features)
+    polarities = []
+    polarity_dtos = review_feature_json.get('polarityDTOs', [])
+    for polarity_dto_json in polarity_dtos:
+        polarity = polarity_dto_json.get('polarity')
+        language_model = polarity_dto_json.get('languageModel')
+        model = language_model.get('modelName') if language_model is not None else None
+        polarity_dto = PolarityDTO(polarity=polarity, languageModel=LanguageModelDTO(model))
+        polarities.append(polarity_dto)
+
+    types = []
+    type_dtos = review_feature_json.get('typeDTOs', [])
+    for type_dto_json in type_dtos:
+        type = type_dto_json.get('type')
+        language_model = type_dto_json.get('languageModel')
+        model = language_model.get('modelName') if language_model is not None else None
+        type_dto = TypeDTO(type=type, languageModel=LanguageModelDTO(model))
+        types.append(type_dto)
+
+    topics = []
+    topic_dtos = review_feature_json.get('topicDTOs', [])
+    for topic_dto_json in topic_dtos:
+        topic = topic_dto_json.get('topic')
+        language_model = topic_dto_json.get('languageModel')
+        model = language_model.get('modelName') if language_model is not None else None
+        topic_dto = TopicDTO(topic=topic, languageModel=LanguageModelDTO(model))
+        topics.append(topic_dto)
+
+    review_response_dto = ReviewFeatureDTO(id=id, review=body, features=features, polarities=polarities, types=types, topics=topics)
     return review_response_dto
 
 def extract_review_dto_from_json(review_json):
@@ -278,7 +343,7 @@ def add_sentences_to_review(review):
 
 
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model, polarity_model, type_model, topic_model, hub_version):
-    endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3000') + '/analyze'
+    endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze'
     
     api_logger.info(f"[{datetime.now()}]: HUB URL {endpoint_url}")
     
