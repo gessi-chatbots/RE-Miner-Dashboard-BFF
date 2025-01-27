@@ -19,7 +19,7 @@ api_logger = logging.getLogger('api')
 api_logger.setLevel(logging.DEBUG)
 load_dotenv()
 # API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ["KNOWLEDGE_REPOSITORY_API_VERSION"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]  
-API_ROUTE = os.environ["KNOWLEDGE_REPOSITORY_URL"] + os.environ["KNOWLEDGE_REPOSITORY_REVIEWS_API"]
+API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL", "http://localhost:3003") + os.environ.get("KNOWLEDGE_REPOSITORY_REVIEWS_API","/reviews")
 
 
 class LanguageModelDTO:
@@ -42,7 +42,39 @@ class FeatureDTO:
             "feature": self.feature,
             "languageModel": self.languageModel.to_dict() if self.languageModel is not None else None,
         }
+    
+class PolarityDTO:
+    def __init__(self, polarity: str, languageModel: LanguageModelDTO):
+        self.polarity = polarity
+        self.languageModel = languageModel
 
+    def to_dict(self):
+        return {
+            "polarity": self.polarity,
+            "languageModel": self.languageModel.to_dict() if self.languageModel is not None else None,
+        }
+    
+class TypeDTO:
+    def __init__(self, type: str, languageModel: LanguageModelDTO):
+        self.type = type
+        self.languageModel = languageModel
+
+    def to_dict(self):
+        return {
+            "type": self.type,
+            "languageModel": self.languageModel.to_dict() if self.languageModel is not None else None,
+        }
+    
+class TopicDTO:
+    def __init__(self, topic: str, languageModel: LanguageModelDTO):
+        self.topic = topic
+        self.languageModel = languageModel
+
+    def to_dict(self):
+        return {
+            "topic": self.topic,
+            "languageModel": self.languageModel.to_dict() if self.languageModel is not None else None,
+        }
 
 class SentimentDTO:
     def __init__(self, sentiment: str, languageModel: LanguageModelDTO):
@@ -73,10 +105,9 @@ class SentenceDTO:
 
 
 class ReviewResponseDTO:
-    def __init__(self, id: str, applicationId: str, applicationPackage: str, review: str, date: date, sentences: List[SentenceDTO]):
+    def __init__(self, id: str, applicationId: str, review: str, date: date, sentences: List[SentenceDTO]):
         self.reviewId = id
         self.applicationId = applicationId
-        self.applicationPackage = applicationPackage
         self.review = review
         self.sentences = sentences
         self.date = date
@@ -92,16 +123,22 @@ class ReviewResponseDTO:
 
 
 class ReviewFeatureDTO:
-    def __init__(self, id: str, review: str, features: List[FeatureDTO]):
+    def __init__(self, id: str, review: str, features: List[FeatureDTO], polarities: List[PolarityDTO], types: List[TypeDTO], topics: List[TopicDTO]):
         self.reviewId = id
         self.review = review
         self.features = features
+        self.polarities = polarities
+        self.types = types
+        self.topics = topics
 
     def to_dict(self):
         return {
             "reviewId": self.reviewId,
             "review": self.review,
-            "features": [feature.to_dict() for feature in self.features]
+            "features": [feature.to_dict() for feature in self.features],
+            "polarities": [polarity.to_dict() for polarity in self.polarities],
+            "types": [type.to_dict() for type in self.types],
+            "topics": [topic.to_dict() for topic in self.topics]
         }
 
 
@@ -155,7 +192,6 @@ def validate_reviews(user_id, id_dicts):
 def get_reviews_from_knowledge_repository(reviews):
     try:
         reviews_json = []
-
         if not isinstance(reviews, list):
             reviews_json.append(reviews)
         else:
@@ -174,10 +210,8 @@ def get_reviews_from_knowledge_repository(reviews):
         print(f"error {e}")
         raise api_exceptions.KGRConnectionException()
 
-
 def convert_to_pascal_case(feature):
     return ''.join(word.capitalize() for word in feature.split())
-
 
 def get_feature_reviews_from_knowledge_repository(app_id, features):
     try:
@@ -218,13 +252,38 @@ def extract_review_feature_dto_from_json(review_feature_json):
         feature_dto = FeatureDTO(feature=feature, languageModel=LanguageModelDTO(model))
         features.append(feature_dto)
 
-    review_response_dto = ReviewFeatureDTO(id=id, review=body, features=features)
-    return review_response_dto
+    polarities = []
+    polarity_dtos = review_feature_json.get('polarityDTOs', [])
+    for polarity_dto_json in polarity_dtos:
+        polarity = polarity_dto_json.get('polarity')
+        language_model = polarity_dto_json.get('languageModel')
+        model = language_model.get('modelName') if language_model is not None else None
+        polarity_dto = PolarityDTO(polarity=polarity, languageModel=LanguageModelDTO(model))
+        polarities.append(polarity_dto)
 
+    types = []
+    type_dtos = review_feature_json.get('typeDTOs', [])
+    for type_dto_json in type_dtos:
+        type = type_dto_json.get('type')
+        language_model = type_dto_json.get('languageModel')
+        model = language_model.get('modelName') if language_model is not None else None
+        type_dto = TypeDTO(type=type, languageModel=LanguageModelDTO(model))
+        types.append(type_dto)
+
+    topics = []
+    topic_dtos = review_feature_json.get('topicDTOs', [])
+    for topic_dto_json in topic_dtos:
+        topic = topic_dto_json.get('topic')
+        language_model = topic_dto_json.get('languageModel')
+        model = language_model.get('modelName') if language_model is not None else None
+        topic_dto = TopicDTO(topic=topic, languageModel=LanguageModelDTO(model))
+        topics.append(topic_dto)
+
+    review_response_dto = ReviewFeatureDTO(id=id, review=body, features=features, polarities=polarities, types=types, topics=topics)
+    return review_response_dto
 
 def extract_review_dto_from_json(review_json):
     app_identifier = review_json.get('applicationId')
-    app_package = review_json.get('applicationPackage', None)
     id = review_json.get('reviewId')
     body = review_json.get('review')
     sentences_json = review_json.get('sentences')
@@ -244,11 +303,7 @@ def extract_review_dto_from_json(review_json):
                     featureDTO = FeatureDTO(feature=featureData.get('feature'))
                     sentence.featureData = featureDTO
             sentences.append(sentence)
-    review_response_dto = ReviewResponseDTO(id=id,
-                                            applicationId=app_identifier,
-                                            applicationPackage=app_package,
-                                            review=body,
-                                            date=date,
+    review_response_dto = ReviewResponseDTO(id=id, applicationId=app_identifier, review=body, date=date,
                                             sentences=sentences)
     return review_response_dto
 
@@ -287,51 +342,48 @@ def add_sentences_to_review(review):
         review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=sentence))
 
 
-def send_to_hub_for_analysis(
-        reviews,
-        feature_model=None,
-        sentiment_model=None,
-        sibling_threshold=None
-):
-    endpoint_base = os.environ.get('HUB_URL', 'http://127.0.0.1:3002')
-    endpoint_url = f"{endpoint_base}/analyze"
-
-    query_params = {}
-    if sentiment_model:
-        query_params['sentiment_model'] = sentiment_model
-    if feature_model:
-        query_params['feature_model'] = feature_model
-    if sibling_threshold is not None:
-        query_params['sibling_threshold'] = sibling_threshold
-
-    if query_params:
-        query_string = '&'.join(f"{key}={value}" for key, value in query_params.items())
-        endpoint_url = f"{endpoint_url}?{query_string}"
-
+def send_to_hub_for_analysis(reviews, feature_model, sentiment_model, polarity_model, type_model, topic_model, hub_version):
+    endpoint_url = os.environ.get('HUB_URL', 'http://127.0.0.1:3002') + '/analyze'
+    
     api_logger.info(f"[{datetime.now()}]: HUB URL {endpoint_url}")
-
-    reviews_payload = [review.to_dict() for review in reviews]
-
-    response = requests.post(endpoint_url, json=reviews_payload)
+    
+    # Create a dictionary of model parameters, filtering out None values
+    model_params = {
+        'feature_model': feature_model,
+        'sentiment_model': sentiment_model,
+        'polarity_model': polarity_model,
+        'type_model': type_model,
+        'topic_model': topic_model
+    }
+    params = {k: v for k, v in model_params.items() if v is not None}
+    
+    # Add parameters to URL if any exist
+    if params:
+        param_strings = [f"{k}={v}" for k, v in params.items()]
+        endpoint_url += '?' + '&'.join(param_strings)
+    
+    if hub_version == 'v0':
+        reviews_dict = [review.to_dict() for review in reviews]
+    else:
+        reviews_dict = reviews
+    response = requests.post(endpoint_url, json=reviews_dict)
 
     if response.status_code == 200:
-        return response.json()
+        return json.loads(response.content)
     else:
-        api_logger.error(f"[{datetime.now()}]: HUB unexpected response {response.status_code} {response.text}")
-        raise api_exceptions.HUBException(f"Error {response.status_code}: {response.text}")
+        api_logger.info(f"[{datetime.now()}]: HUB unnexpected response {response.status_code} {response}")
+        raise api_exceptions.HUBException()
 
 
-def analyze_reviews(reviewsIds, feature_model, sentiment_model, sibling_threshold):
+def analyze_reviews(reviewsIds, feature_model, sentiment_model, polarity_model, type_model, topic_model):
     # validate_reviews(user_id, reviewsIds)
+    api_logger.info(f"[{datetime.now()}]: Get reviews from KG")
     kr_reviews = get_reviews_from_knowledge_repository(reviewsIds)
     if kr_reviews is None:
         raise api_exceptions.KGRReviewsNotFoundException()
     for kr_review in kr_reviews:
         check_review_splitting(kr_review)
-    hub_response = send_to_hub_for_analysis(kr_reviews,
-                                            feature_model,
-                                            sentiment_model,
-                                            sibling_threshold)
+    hub_response = send_to_hub_for_analysis(kr_reviews, feature_model, sentiment_model, polarity_model, type_model, topic_model, 'v0')
     # TODO create dtos with id and the analysis results to reduce statements in kg repo
     insert_reviews_in_kg(hub_response['analyzed_reviews'])
     return hub_response['analyzed_reviews']
