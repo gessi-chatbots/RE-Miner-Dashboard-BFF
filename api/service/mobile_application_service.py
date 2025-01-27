@@ -49,6 +49,25 @@ def get_applications(user_id, page, page_size):
 
     return application_list, total_pages
 
+def get_applications_names(user_id):
+    user = user_service.get_user_by_id(user_id)
+    applications_query = user.applications
+
+
+    # Fetch applications for the current page
+    applications = applications_query.all()
+
+    application_list = []
+
+    for app in applications:
+        application = {
+            'data': app.json(),
+        }
+        clean_name = application['data']['name'].replace('_', ' ')
+        application['data']['name'] = clean_name
+        application_list.append(application)
+
+    return application_list
 
 def update_application(user_id, application_data):
     application_name = application_data['app_name']
