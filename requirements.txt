@@ -1,0 +1,12 @@
+flask_jwt_extended
+requests
+flask
+flask-cors
+flask-sqlalchemy
+flask-migrate
+flask-restful
+flask-jwt-extended
+tenacity
+psycopg2
+flask_wtf
+flask_login
