@@ -336,8 +336,8 @@ def get_application_data_from_directory(app_name):
 
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
 @jwt_required(optional=True)
-def get_applications(user_id):
-    api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications")
+def get_user_applications(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get paginated user {user_id} applications")
     validate_user(user_id)
     page = request.args.get('page', default=1, type=int)
     page_size = request.args.get('pageSize', default=8, type=int)
@@ -348,6 +348,20 @@ def get_applications(user_id):
         response_data = {
             "applications": user_applications,
             "total_pages": total_pages
+        }
+        return make_response(jsonify(response_data), 200)
+
+@api_bp.route('/users/<string:user_id>/applications/names', methods=['GET'])
+@jwt_required(optional=True)
+def get_user_applications_names(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications names")
+    validate_user(user_id)
+    user_applications = mobile_application_service.get_applications_names(user_id)
+    if not user_applications:
+        return make_response('no content', 204)
+    else:
+        response_data = {
+            "applications": user_applications,
         }
         return make_response(jsonify(response_data), 200)
 
