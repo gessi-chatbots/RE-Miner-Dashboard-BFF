@@ -370,7 +370,6 @@ def get_user_applications_names(user_id):
 def create_applications(user_id):
     api_logger.info(f"[{datetime.now()}]: Create Applications for user {user_id} request")
     validate_user(user_id)
-    applications_list = []
     if 'Content-Type' in request.headers and 'application/json' in request.headers['Content-Type']:
         applications_list = request.get_json()
     elif 'applications_file' in request.files:
@@ -670,6 +669,61 @@ def get_selected_reviews(app_name):
 
         feature_list = data["feature_list"]
         reviews_data = review_service.get_feature_reviews_from_knowledge_repository(app_name, feature_list)
+        return make_response(jsonify(reviews_data), 200)
+
+    except Exception as e:
+        api_logger.error(f"Error occurred: {e}")
+        return make_response("Internal server error", 500)
+
+
+
+
+@api_bp.route('/reviews-filtered', methods=['POST'])
+def get_filtered_reviews():
+    try:
+        api_logger.info(f"[{datetime.now()}]: Get filtered reviews")
+
+        # Parse JSON request body
+        data = request.get_json()
+        if not data:
+            return make_response("Invalid request body", 400)
+
+        # Validate that at least one field is provided
+        valid_fields = ["app_name", "feature_list", "topic", "emotion", "polarity", "type"]
+        if not any(data.get(field) for field in valid_fields):
+            return make_response("At least one filter must be provided", 400)
+
+        app_id = data.get("app_name")
+        feature_list = data.get("feature_list", [])
+        topic = data.get("topic")
+        emotion = data.get("emotion")
+        polarity = data.get("polarity")
+        review_type = data.get("type")
+
+        if feature_list and not isinstance(feature_list, list):
+            return make_response("feature_list must be a list", 400)
+
+        # Pagination parameters
+        page = data.get("page", 1)  # Default to page 1 if not provided
+        page_size = data.get("page_size", 10)  # Default to 10 items per page if not provided
+
+        # Prepare the request with all filters
+        filters = {
+            "app_id": app_package,
+            "features": feature_list,
+            "topic": topic,
+            "emotion": emotion,
+            "polarity": polarity,
+            "type": review_type,
+        }
+
+        # Fetch reviews using the review_service
+        reviews_data = review_service.get_reviews_by_filters(
+            filters,
+            page=page,
+            page_size=page_size
+        )
+
         return make_response(jsonify(reviews_data), 200)
 
     except Exception as e:
