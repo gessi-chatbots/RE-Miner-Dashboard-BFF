@@ -469,11 +469,11 @@ def get_review(user_id, application_id, review_id):
     validate_user(user_id)
     review_data = review_service.get_review(user_id, application_id, review_id)
     return make_response(review_data, 200)
-@api_bp.route('/applications/<string:application_id>/reviews/<string:review_id>', methods=['GET'])
+@api_bp.route('/reviews/<string:review_id>', methods=['GET'])
 @jwt_required(optional=True)
-def get_review_without_user(application_id, review_id):
+def get_review_without_user(review_id):
     api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
-    review_data = review_service.get_review(application_id, review_id)
+    review_data = review_service.get_review(review_id)
     return make_response(review_data, 200)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['DELETE'])

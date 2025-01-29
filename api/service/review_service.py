@@ -203,9 +203,9 @@ def validate_reviews(user_id, id_dicts):
 
 def get_reviews_from_knowledge_repository(reviews):
     try:
-        if isinstance(reviews, str):  # If it's a single string, convert it to a list
+        if isinstance(reviews, str):
             reviews_json = [reviews]
-        elif isinstance(reviews, list):  # If it's already a list, keep it as is
+        elif isinstance(reviews, list):
             reviews_json = reviews
         else:
             raise ValueError("Invalid input: reviews must be a list or a string")
@@ -224,6 +224,21 @@ def get_reviews_from_knowledge_repository(reviews):
         print(f"error {e}")
         raise api_exceptions.KGRConnectionException()
 
+def get_review_from_knowledge_repository(review_id):
+    try:
+        response = requests.get(
+            API_ROUTE + f'/{review_id}',
+        )
+
+        if response.status_code == 200:
+
+            return response.json()
+        else:
+            raise api_exceptions.KGRReviewsNotFoundException
+
+    except requests.exceptions.ConnectionError as e:
+        print(f"error {e}")
+        raise api_exceptions.KGRConnectionException()
 
 def get_filtered_reviews_from_knowledge_repository(filters, page, page_size):
     try:
@@ -608,11 +623,6 @@ def get_review_by_review_id(user_id, application_id, review_id):
             if result:
                 return review
 
-
-def get_review_from_knowledge_repository(review_id):
-    return None
-
-
 def get_reviews_by_review_id(review_ids):
     reviews = Review.query.filter(Review.review_id.in_(review_ids)).all()
     return reviews
@@ -635,23 +645,9 @@ def get_user_application_review_from_sql(user_id, application_id, review_id):
     return result
 
 
-def get_review(application_id, review_id):
-    review_kr = get_reviews_from_knowledge_repository(review_id)
-    rev = review_kr[0] # just the first review
-    add_sentences_to_review(rev)
-    review_data = {
-        "application": {
-            "id": application_id,
-            "name": rev.applicationId
-        },
-        "id": rev.reviewId,
-        "review_id": rev.reviewId,
-        "review_text": rev.review,
-        "sentences": [
-            sentence.to_dict() for sentence in rev.sentences
-        ]
-    }
-    return review_data
+def get_review(review_id):
+    return get_review_from_knowledge_repository(review_id)
+
 
 
 def get_reviews_by_user_application(user_id, application_id):
