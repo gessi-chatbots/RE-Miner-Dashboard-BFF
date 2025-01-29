@@ -203,25 +203,26 @@ def validate_reviews(user_id, id_dicts):
 
 def get_reviews_from_knowledge_repository(reviews):
     try:
-        reviews_json = []
-        if not isinstance(reviews, list):
-            reviews_json.append(reviews)
-        else:
+        if isinstance(reviews, str):  # If it's a single string, convert it to a list
+            reviews_json = [reviews]
+        elif isinstance(reviews, list):  # If it's already a list, keep it as is
             reviews_json = reviews
+        else:
+            raise ValueError("Invalid input: reviews must be a list or a string")
+
         response = requests.get(
             API_ROUTE + '/list',
-            json=[rev for rev in reviews])
+            json=reviews_json
+        )
+
         if response.status_code == 200:
-            review_response_dtos = []
-            for review_json in response.json():
-                review_response_dtos.append(extract_review_dto_from_json(review_json))
-            return review_response_dtos
-        elif response.status_code == 404:
+            return [extract_review_dto_from_json(review_json) for review_json in response.json()]
+        else:
             raise api_exceptions.KGRReviewsNotFoundException
+
     except requests.exceptions.ConnectionError as e:
         print(f"error {e}")
         raise api_exceptions.KGRConnectionException()
-
 
 
 def get_filtered_reviews_from_knowledge_repository(filters, page, page_size):
@@ -425,13 +426,18 @@ def split_review(review_text):
 
 def add_sentences_to_review(review):
     sentences = split_review(review.review)
-    try:
-        if len(review.sentences) > 0:
+    if not review.sentences or len(review.sentences) == 0:
+        review.sentences = [
+            SentenceDTO(id=f"{review.reviewId}_{i + 1}", featureData=None, sentimentData=None, text=sentence)
+            for i, sentence in enumerate(sentences)
+        ]
+    else:
+        try:
             for index, sentence in enumerate(sentences):
                 review.sentences[index].text = sentence
-    except IndexError:  # NLTK sometimes splits randomly
-        sentence_id = f"{review.reviewId}_{index + 1}"
-        review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=sentence))
+        except IndexError:  # NLTK sometimes splits randomly
+            sentence_id = f"{review.reviewId}_{index + 1}"
+            review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=sentence))
 
 
 def send_to_hub_for_analysis(reviews, feature_model, sentiment_model, polarity_model, type_model, topic_model, hub_version):
@@ -629,21 +635,20 @@ def get_user_application_review_from_sql(user_id, application_id, review_id):
     return result
 
 
-def get_review(user_id, application_id, review_id):
-    review_sql = get_review_by_review_id(user_id, application_id, review_id)
-    review_kr = get_reviews_from_knowledge_repository([review_id])[0]
-    app = mobile_application_service.get_application_by_id(application_id)
-    add_sentences_to_review(review_kr)
+def get_review(application_id, review_id):
+    review_kr = get_reviews_from_knowledge_repository(review_id)
+    rev = review_kr[0] # just the first review
+    add_sentences_to_review(rev)
     review_data = {
         "application": {
             "id": application_id,
-            "name": app.name.replace('_', ' ')
+            "name": rev.applicationId
         },
-        "id": review_sql.id,
-        "review_id": review_sql.review_id,
-        "review_text": review_kr.review,
+        "id": rev.reviewId,
+        "review_id": rev.reviewId,
+        "review_text": rev.review,
         "sentences": [
-            sentence.to_dict() for sentence in review_kr.sentences
+            sentence.to_dict() for sentence in rev.sentences
         ]
     }
     return review_data
