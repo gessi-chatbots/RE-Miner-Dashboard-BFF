@@ -1,5 +1,5 @@
 from api import db
-from api.models import Review, user_reviews_application_association, user_review_association
+from api.models import Review, user_reviews_application_association
 from sqlalchemy import select, delete, exc, func
 from typing import List
 from datetime import date, datetime
@@ -123,18 +123,30 @@ class ReviewResponseDTO:
 
 
 class ReviewFeatureDTO:
-    def __init__(self, id: str, review: str, features: List[FeatureDTO], polarities: List[PolarityDTO], types: List[TypeDTO], topics: List[TopicDTO]):
-        self.reviewId = id
+    def __init__(self,
+                 appId: str,
+                 reviewId: str,
+                 review: str,
+                 features: List[FeatureDTO],
+                 emotions: List[SentimentDTO],
+                 polarities: List[PolarityDTO],
+                 types: List[TypeDTO],
+                 topics: List[TopicDTO]):
+        self.appId = appId
+        self.reviewId = reviewId
         self.review = review
         self.features = features
+        self.emotions = emotions
         self.polarities = polarities
         self.types = types
         self.topics = topics
 
     def to_dict(self):
         return {
+            "appPackage": self.appId,
             "reviewId": self.reviewId,
             "review": self.review,
+            "emotions": [emotion.to_dict() for emotion in self.emotions],
             "features": [feature.to_dict() for feature in self.features],
             "polarities": [polarity.to_dict() for polarity in self.polarities],
             "types": [type.to_dict() for type in self.types],
@@ -210,6 +222,69 @@ def get_reviews_from_knowledge_repository(reviews):
         print(f"error {e}")
         raise api_exceptions.KGRConnectionException()
 
+
+
+def get_filtered_reviews_from_knowledge_repository(filters, page, page_size):
+    try:
+        features = filters.get('features', [])
+        if not isinstance(features, list):
+            features = [features]
+
+        features_pascal_case = [convert_to_pascal_case(feature) for feature in features]
+
+        payload = {
+            key: value
+            for key, value in {
+                "app_id": filters.get("app_id", None),
+                "features": features_pascal_case if features_pascal_case else None,
+                "topic": filters.get("topic", None),
+                "emotion": filters.get("emotion", None),
+                "polarity": filters.get("polarity", None),
+                "type": filters.get("type", None),
+            }.items()
+            if value is not None
+        }
+        # Prepare query parameters
+        query_params = {"page": page, "size": page_size}
+
+        response = requests.post(
+            API_ROUTE + "/by-descriptors",
+            params=query_params,
+            json=payload,
+        )
+
+        # Process the response
+
+        if response.status_code == 200:
+            response_json = response.json()
+
+            # Extract pagination metadata
+            current_page = response_json.get('currentPage', 0)
+            total_pages = response_json.get('totalPages', 0)
+            total_elements = response_json.get('totalElements', 0)
+            page_size = response_json.get('pageSize', 10)
+            last_page = response_json.get('last', False)
+
+            # Extract the actual review data
+            review_response_dtos = []
+            reviews_json = response_json.get('content', [])  # Ensure you get content, not full response
+            for review_json in reviews_json:
+                review_response_dtos.append(extract_review_w_descriptors_dto_from_json(review_json).to_dict())
+
+            # Return the full paginated response
+            return {
+                "content": review_response_dtos,
+                "currentPage": current_page,
+                "totalPages": total_pages,
+                "totalElements": total_elements,
+                "pageSize": page_size,
+                "last": last_page
+            }
+
+    except requests.exceptions.ConnectionError as e:
+        print(f"error {e}")
+        raise api_exceptions.KGRConnectionException()
+
 def convert_to_pascal_case(feature):
     return ''.join(word.capitalize() for word in feature.split())
 
@@ -231,7 +306,7 @@ def get_feature_reviews_from_knowledge_repository(app_id, features):
         if response.status_code == 200:
             review_response_dtos = []
             for review_json in response.json():
-                review_response_dtos.append(extract_review_feature_dto_from_json(review_json).to_dict())
+                review_response_dtos.append(extract_review_w_descriptors_dto_from_json(review_json).to_dict())
             return review_response_dtos
         elif response.status_code in (404, 204):
             raise api_exceptions.KGRReviewsNotFoundException
@@ -240,9 +315,10 @@ def get_feature_reviews_from_knowledge_repository(app_id, features):
         raise api_exceptions.KGRConnectionException()
 
 
-def extract_review_feature_dto_from_json(review_feature_json):
-    id = review_feature_json.get('reviewId')
-    body = review_feature_json.get('review')
+def extract_review_w_descriptors_dto_from_json(review_feature_json):
+    id = review_feature_json.get('reviewId', "N/A")
+    body = review_feature_json.get('review', "N/A")
+    appId = review_feature_json.get('appId', "N/A")
 
     features = []
     feature_dtos = review_feature_json.get('featureDTOs', [])
@@ -251,6 +327,15 @@ def extract_review_feature_dto_from_json(review_feature_json):
         model = feature_dto_json.get('languageModel').get('modelName')
         feature_dto = FeatureDTO(feature=feature, languageModel=LanguageModelDTO(model))
         features.append(feature_dto)
+
+    emotions = []
+    emotion_dtos = review_feature_json.get('sentimentDTOs', [])
+    for emotion_dto_json in emotion_dtos:
+        sentiment = emotion_dto_json.get('sentiment')
+        language_model = emotion_dto_json.get('languageModel')
+        model = language_model.get('modelName') if language_model is not None else None
+        emotion_dto = SentimentDTO(sentiment=sentiment, languageModel=LanguageModelDTO(model))
+        emotions.append(emotion_dto)
 
     polarities = []
     polarity_dtos = review_feature_json.get('polarityDTOs', [])
@@ -279,7 +364,14 @@ def extract_review_feature_dto_from_json(review_feature_json):
         topic_dto = TopicDTO(topic=topic, languageModel=LanguageModelDTO(model))
         topics.append(topic_dto)
 
-    review_response_dto = ReviewFeatureDTO(id=id, review=body, features=features, polarities=polarities, types=types, topics=topics)
+    review_response_dto = ReviewFeatureDTO(appId=appId,
+                                           reviewId=id,
+                                           review=body,
+                                           features=features,
+                                           emotions=emotions,
+                                           polarities=polarities,
+                                           types=types,
+                                           topics=topics)
     return review_response_dto
 
 def extract_review_dto_from_json(review_json):
@@ -644,8 +736,6 @@ def has_user_review(user_id, application_id, review_id):
     return result is not None
 
 
-def get_reviews_by_features(feature_list, page, page_size):
-    reviews_request = [feature for feature in feature_list]
-    reviews_kr = get_reviews_from_knowledge_repository(reviews_request)
-
-    return {'reviews': reviews_kr}
+def get_reviews_by_filters(filters, page, page_size):
+    reviews_kr = get_filtered_reviews_from_knowledge_repository(filters, page, page_size)
+    return reviews_kr

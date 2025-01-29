@@ -138,12 +138,7 @@ def save_application_in_sql_db(user_id, application_data):
     
 def insert_application_in_sql_db(user_id, application_data):
     application_id = str(uuid.uuid4())
-    application_name = ""
-    # TODO fix formats
-    if ('app_name' not in application_data and 'name' in application_data):
-        application_name = application_data['name']
-    if ('app_name' in application_data and 'name' not in application_data):        
-        application_name = application_data['app_name']
+    application_name = application_data['package_name']
     try:
         new_application = Application(id = application_id, name=application_name)
         db.session.add(new_application)

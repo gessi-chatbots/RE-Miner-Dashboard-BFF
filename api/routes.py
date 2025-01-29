@@ -688,17 +688,13 @@ def get_filtered_reviews():
         if not data:
             return make_response("Invalid request body", 400)
 
-        # Validate that at least one field is provided
-        valid_fields = ["app_name", "feature_list", "topic", "emotion", "polarity", "type"]
-        if not any(data.get(field) for field in valid_fields):
-            return make_response("At least one filter must be provided", 400)
 
-        app_id = data.get("app_name")
-        feature_list = data.get("feature_list", [])
-        topic = data.get("topic")
-        emotion = data.get("emotion")
-        polarity = data.get("polarity")
-        review_type = data.get("type")
+        app_id = data.get("app_id", "")
+        feature_list = data.get("features", [])
+        topic = data.get("topic", "")
+        emotion = data.get("emotion", "")
+        polarity = data.get("polarity", "")
+        review_type = data.get("type", "")
 
         if feature_list and not isinstance(feature_list, list):
             return make_response("feature_list must be a list", 400)
@@ -709,7 +705,7 @@ def get_filtered_reviews():
 
         # Prepare the request with all filters
         filters = {
-            "app_id": app_package,
+            "app_id": app_id,
             "features": feature_list,
             "topic": topic,
             "emotion": emotion,
