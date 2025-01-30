@@ -224,17 +224,25 @@ def get_reviews_from_knowledge_repository(reviews):
         print(f"error {e}")
         raise api_exceptions.KGRConnectionException()
 
+
 def get_review_from_knowledge_repository(review_id):
     try:
-        response = requests.get(
-            API_ROUTE + f'/{review_id}',
-        )
+        response = requests.get(API_ROUTE + f'/{review_id}')
 
         if response.status_code == 200:
+            review_data = response.json()
 
-            return response.json()
-        else:
-            raise api_exceptions.KGRReviewsNotFoundException
+            review_text = review_data.get('review')
+            if review_text:
+                sentences = split_review(review_text)
+                for idx, sentence in enumerate(sentences):
+                    if idx < len(review_data['sentences']):
+                        review_data['sentences'][idx]['sentence'] = sentence
+            return review_data
+
+    except Exception as e:
+        # Handle any other unexpected exceptions (optional)
+        raise api_exceptions.KGRReviewsException(f"An error occurred: {str(e)}")
 
     except requests.exceptions.ConnectionError as e:
         print(f"error {e}")
@@ -433,6 +441,7 @@ def extend_and_split_review(review):
         sentence_id = f"{review.reviewId}_{index}"
         text = sentence
         review.sentences.append(SentenceDTO(id=sentence_id, featureData=None, sentimentData=None, text=text))
+    return review
 
 
 def split_review(review_text):
