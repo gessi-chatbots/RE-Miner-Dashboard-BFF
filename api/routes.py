@@ -269,6 +269,20 @@ def topUserSentimentsByAppNames(user_id):
     top_sentiments = mobile_application_service.get_top_sentiments(user_id, app_names)
     return make_response(jsonify(top_sentiments), 200)
 
+@api_bp.route('analyze/top-descriptors', methods=['POST'])
+@jwt_required(optional=True)
+def topDescriptors():
+    api_logger.info(f"[{datetime.now()}]: top Descriptors")
+    top_descriptors = mobile_application_service.get_top_descriptors()
+    return make_response(jsonify(top_descriptors), 200)
+
+@api_bp.route('analyze/top-features', methods=['POST'])
+@jwt_required(optional=True)
+def topFeatures():
+    api_logger.info(f"[{datetime.now()}]: Get Top Features")
+    top_features = mobile_application_service.get_top_features()
+    return make_response(jsonify(top_features), 200)
+
 
 @api_bp.route('/users/<string:user_id>/analyze/top-features', methods=['POST'])
 @jwt_required(optional=True)

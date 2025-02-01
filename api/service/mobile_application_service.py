@@ -165,18 +165,16 @@ def send_applications_to_kg(applications):
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException(e)
     
-def get_kg_top_features(applications):
+def get_kg_top_features():
     try:
-        applications = [app.replace(" ", "_") for app in applications]
         headers = {'Content-type': 'application/json'}
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/analysis/top-features'
-        response = requests.post(
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/api/v1/analysis/top-features'
+        response = requests.get(
             url,
             headers=headers,
-            json=(applications if isinstance(applications, list) else [applications])
         )
         if response.status_code == 200:
-            transformed_response = [{'feature': item['featureName'], 'occurrences': item['occurrences']} for item in response.json()['topFeatures']]
+            transformed_response = [{'feature': item['feature'], 'occurrences': item['occurrences']} for item in response.json()['topFeatures']]
             return transformed_response
         else:
             raise api_exceptions.KGRException()
@@ -203,7 +201,25 @@ def get_kg_top_sentiments(applications):
     except requests.exceptions.ConnectionError as e:
         api_logger.error(f"error {e}")
         raise api_exceptions.KGRConnectionException(e)
-    
+
+
+def get_kg_top_descriptors():
+    try:
+        headers = {'Content-type': 'application/json'}
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/api/v1/analysis/top-descriptors'
+        response = requests.get(
+            url,
+            headers=headers,
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            api_logger.warning(f"Response unwanted status {response} {response.status_code}")
+            raise api_exceptions.KGRException()
+    except requests.exceptions.ConnectionError as e:
+        api_logger.error(f"error {e}")
+        raise api_exceptions.KGRConnectionException(e)
+
 def get_app_statistics(application, start_date="2020-01-01", end_date=None):
     try:
         app = get_application_by_id(application)
@@ -239,10 +255,13 @@ def process_applications(user_id, applications):
 def get_top_sentiments(user_id, applications):
     return get_kg_top_sentiments(applications)
 
+def get_top_descriptors():
+    return get_kg_top_descriptors()
 
 
-def get_top_features(user_id, applications):
-    return get_kg_top_features(applications)
+
+def get_top_features():
+    return get_kg_top_features()
 
 
 def is_application_from_user(user_id, application_id):
