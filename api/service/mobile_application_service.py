@@ -21,7 +21,7 @@ handler.setFormatter(formatter)
 api_logger.addHandler(handler)
 # api_logger.addHandler(logging.FileHandler(f'logs/[{datetime.now().date()}]api.log'))
 # API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL") + os.environ.get("KNOWLEDGE_REPOSITORY_API") + os.environ.get("KNOWLEDGE_REPOSITORY_API_VERSION") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API")  
-API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL", "http://127.0.0.1:3003") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API", "/mobile-applications")  
+API_ROUTE = os.environ.get("KNOWLEDGE_REPOSITORY_URL", "http://127.0.0.1:3003") + os.environ.get("KNOWLEDGE_REPOSITORY_MOBILE_APPLICATIONS_API", "/mobile-applications")
 
 def get_applications(user_id, page, page_size):
     user = user_service.get_user_by_id(user_id)
@@ -49,6 +49,25 @@ def get_applications(user_id, page, page_size):
 
     return application_list, total_pages
 
+def get_applications_names(user_id):
+    user = user_service.get_user_by_id(user_id)
+    applications_query = user.applications
+
+
+    # Fetch applications for the current page
+    applications = applications_query.all()
+
+    application_list = []
+
+    for app in applications:
+        application = {
+            'data': app.json(),
+        }
+        clean_name = application['data']['name'].replace('_', ' ')
+        application['data']['name'] = clean_name
+        application_list.append(application)
+
+    return application_list
 
 def update_application(user_id, application_data):
     application_name = application_data['app_name']
@@ -71,11 +90,9 @@ def get_application(user_id, application_id):
         else: 
             return None
         
-def get_application_features(application_id):
-    app = get_application_by_id(application_id)
-    app_name_sanitized = app.name.replace(" ", "_")
+def get_application_features(appPackage):
     try:
-        response = requests.get(API_ROUTE)
+        response = requests.get(f"{API_ROUTE}/{appPackage}/features")
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 404:
@@ -119,12 +136,7 @@ def save_application_in_sql_db(user_id, application_data):
     
 def insert_application_in_sql_db(user_id, application_data):
     application_id = str(uuid.uuid4())
-    application_name = ""
-    # TODO fix formats
-    if ('app_name' not in application_data and 'name' in application_data):
-        application_name = application_data['name']
-    if ('app_name' in application_data and 'name' not in application_data):        
-        application_name = application_data['app_name']
+    application_name = application_data['package_name']
     try:
         new_application = Application(id = application_id, name=application_name)
         db.session.add(new_application)
@@ -151,18 +163,16 @@ def send_applications_to_kg(applications):
     except requests.exceptions.ConnectionError as e: 
         raise api_exceptions.KGRConnectionException(e)
     
-def get_kg_top_features(applications):
+def get_kg_top_features():
     try:
-        applications = [app.replace(" ", "_") for app in applications]
         headers = {'Content-type': 'application/json'}
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/graph-db-api/analysis/top-features'
-        response = requests.post(
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/api/v1/analysis/top-features'
+        response = requests.get(
             url,
             headers=headers,
-            json=(applications if isinstance(applications, list) else [applications])
         )
         if response.status_code == 200:
-            transformed_response = [{'feature': item['featureName'], 'occurrences': item['occurrences']} for item in response.json()['topFeatures']]
+            transformed_response = [{'feature': item['feature'], 'occurrences': item['occurrences']} for item in response.json()['topFeatures']]
             return transformed_response
         else:
             raise api_exceptions.KGRException()
@@ -189,27 +199,49 @@ def get_kg_top_sentiments(applications):
     except requests.exceptions.ConnectionError as e:
         api_logger.error(f"error {e}")
         raise api_exceptions.KGRConnectionException(e)
-    
-def get_app_statistics(application, start_date="2020-01-01", end_date=None):
-    try:
-        app = get_application_by_id(application)
-        app_name_sanitized = app.name.replace(" ", "_")
-        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + f'/graph-db-api/applications/{app_name_sanitized}/statistics'
-        
-        params = {}
-        if start_date:
-            params['startDate'] = start_date
-        if end_date:
-            params['endDate'] = end_date
 
-        response = requests.get(url, params=params)
+
+def get_kg_top_descriptors():
+    try:
+        headers = {'Content-type': 'application/json'}
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL', 'http://127.0.0.1:3003') + '/api/v1/analysis/top-descriptors'
+        response = requests.get(
+            url,
+            headers=headers,
+        )
         if response.status_code == 200:
             return response.json()
         else:
+            api_logger.warning(f"Response unwanted status {response} {response.status_code}")
             raise api_exceptions.KGRException()
     except requests.exceptions.ConnectionError as e:
+        api_logger.error(f"error {e}")
         raise api_exceptions.KGRConnectionException(e)
-    
+
+
+def get_app_statistics(app_id, descriptor=None, start_date="2020-01-01", end_date=None):
+    try:
+        # Construct the URL
+        url = os.environ.get('KNOWLEDGE_REPOSITORY_URL',
+                             'http://127.0.0.1:3003') + f'/api/v1/analysis/{app_id}/statistics'
+
+        params = {
+            'startDate': start_date
+        }
+        if end_date:
+            params['endDate'] = end_date
+        if descriptor:
+            params['descriptor'] = descriptor
+
+        response = requests.get(url, params=params)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise api_exceptions.KGRException(f"Failed to fetch statistics. Status code: {response.status_code}")
+    except requests.exceptions.ConnectionError as e:
+        raise api_exceptions.KGRConnectionException(f"Connection error: {e}")
+
 def process_applications(user_id, applications):
     send_applications_to_kg(applications)
     processed_applications = []
@@ -225,10 +257,13 @@ def process_applications(user_id, applications):
 def get_top_sentiments(user_id, applications):
     return get_kg_top_sentiments(applications)
 
+def get_top_descriptors():
+    return get_kg_top_descriptors()
 
 
-def get_top_features(user_id, applications):
-    return get_kg_top_features(applications)
+
+def get_top_features():
+    return get_kg_top_features()
 
 
 def is_application_from_user(user_id, application_id):

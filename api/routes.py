@@ -269,6 +269,20 @@ def topUserSentimentsByAppNames(user_id):
     top_sentiments = mobile_application_service.get_top_sentiments(user_id, app_names)
     return make_response(jsonify(top_sentiments), 200)
 
+@api_bp.route('analyze/top-descriptors', methods=['POST'])
+@jwt_required(optional=True)
+def topDescriptors():
+    api_logger.info(f"[{datetime.now()}]: top Descriptors")
+    top_descriptors = mobile_application_service.get_top_descriptors()
+    return make_response(jsonify(top_descriptors), 200)
+
+@api_bp.route('analyze/top-features', methods=['POST'])
+@jwt_required(optional=True)
+def topFeatures():
+    api_logger.info(f"[{datetime.now()}]: Get Top Features")
+    top_features = mobile_application_service.get_top_features()
+    return make_response(jsonify(top_features), 200)
+
 
 @api_bp.route('/users/<string:user_id>/analyze/top-features', methods=['POST'])
 @jwt_required(optional=True)
@@ -281,17 +295,14 @@ def topUserFeaturesByAppNames(user_id):
     top_features = mobile_application_service.get_top_features(user_id, app_names)
     return make_response(jsonify(top_features), 200)
 
-@api_bp.route('/users/<string:user_id>/applications/<string:app_id>/statistics', methods=['GET'])
+@api_bp.route('/applications/<string:app_id>/statistics', methods=['GET'])
 @jwt_required(optional=True)
-def statistics(user_id, app_id):
-    api_logger.info(f"[{datetime.now()}]: Get User {user_id} statistics")
-    validate_user(user_id)
-    if not request.args or ('start_date' not in request.args and 'end_date' not in request.args):
-        return make_response(jsonify({'message': 'start_date or end_date parameter is missing'}), 400)
-
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    statistics = mobile_application_service.get_app_statistics(app_id, start_date, end_date)
+def statistics(app_id):
+    api_logger.info(f"[{datetime.now()}]: Get Application {app_id} statistics")
+    start_date = request.args.get('start_date', None)
+    end_date = request.args.get('end_date', None)
+    descriptor = request.args.get('descriptor', None)
+    statistics = mobile_application_service.get_app_statistics(app_id, descriptor, start_date, end_date)
     return make_response(jsonify(statistics), 200)
 
 #---------------------------------------------------------------------------
@@ -336,8 +347,8 @@ def get_application_data_from_directory(app_name):
 
 @api_bp.route('/users/<string:user_id>/applications', methods=['GET'])
 @jwt_required(optional=True)
-def get_applications(user_id):
-    api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications")
+def get_user_applications(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get paginated user {user_id} applications")
     validate_user(user_id)
     page = request.args.get('page', default=1, type=int)
     page_size = request.args.get('pageSize', default=8, type=int)
@@ -351,12 +362,24 @@ def get_applications(user_id):
         }
         return make_response(jsonify(response_data), 200)
 
-@api_bp.route('/users/<string:user_id>/applications', methods=['POST'])
+@api_bp.route('/users/<string:user_id>/applications/names', methods=['GET'])
 @jwt_required(optional=True)
-def create_applications(user_id):
-    api_logger.info(f"[{datetime.now()}]: Create Applications for user {user_id} request")
+def get_user_applications_names(user_id):
+    api_logger.info(f"[{datetime.now()}]: Get all user {user_id} applications names")
     validate_user(user_id)
-    applications_list = []
+    user_applications = mobile_application_service.get_applications_names(user_id)
+    if not user_applications:
+        return make_response('no content', 204)
+    else:
+        response_data = {
+            "applications": user_applications,
+        }
+        return make_response(jsonify(response_data), 200)
+
+@api_bp.route('/applications', methods=['POST'])
+@jwt_required(optional=True)
+def create_applications():
+    api_logger.info(f"[{datetime.now()}]: Create Applications request")
     if 'Content-Type' in request.headers and 'application/json' in request.headers['Content-Type']:
         applications_list = request.get_json()
     elif 'applications_file' in request.files:
@@ -368,7 +391,7 @@ def create_applications(user_id):
     if len(applications_list) == 0:
         return make_response(jsonify(api_responses.responses['empty_applications_body']), 400)
 
-    applications = mobile_application_service.process_applications(user_id, applications_list)
+    applications = mobile_application_service.send_applications_to_kg(applications_list)
     return make_response(jsonify(applications), 201)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['PUT', 'POST'])
@@ -405,6 +428,13 @@ def get_application(user_id, application_id):
 def get_application_features(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
     validate_user(user_id)
+    features = mobile_application_service.get_application_features(application_id)
+    return make_response(features, 200)
+
+@api_bp.route('/applications/<string:application_id>/features', methods=['GET'])
+@jwt_required(optional=True)
+def get_application_features_without_user(application_id):
+    api_logger.info(f"[{datetime.now()}]: Get Application {application_id} features")
     features = mobile_application_service.get_application_features(application_id)
     return make_response(features, 200)
 
@@ -455,6 +485,12 @@ def get_review(user_id, application_id, review_id):
     api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
     validate_user(user_id)
     review_data = review_service.get_review(user_id, application_id, review_id)
+    return make_response(review_data, 200)
+@api_bp.route('/reviews/<string:review_id>', methods=['GET'])
+@jwt_required(optional=True)
+def get_review_without_user(review_id):
+    api_logger.info(f"[{datetime.now()}]: Get Review {review_id}")
+    review_data = review_service.get_review(review_id)
     return make_response(review_data, 200)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>/reviews/<string:review_id>', methods=['DELETE'])
@@ -656,6 +692,57 @@ def get_selected_reviews(app_name):
 
         feature_list = data["feature_list"]
         reviews_data = review_service.get_feature_reviews_from_knowledge_repository(app_name, feature_list)
+        return make_response(jsonify(reviews_data), 200)
+
+    except Exception as e:
+        api_logger.error(f"Error occurred: {e}")
+        return make_response("Internal server error", 500)
+
+
+
+
+@api_bp.route('/reviews-filtered', methods=['POST'])
+def get_filtered_reviews():
+    try:
+        api_logger.info(f"[{datetime.now()}]: Get filtered reviews")
+
+        # Parse JSON request body
+        data = request.get_json()
+        if not data:
+            return make_response("Invalid request body", 400)
+
+
+        app_id = data.get("app_id", "")
+        feature_list = data.get("features", [])
+        topic = data.get("topic", "")
+        emotion = data.get("emotion", "")
+        polarity = data.get("polarity", "")
+        review_type = data.get("type", "")
+
+        if feature_list and not isinstance(feature_list, list):
+            return make_response("feature_list must be a list", 400)
+
+        # Pagination parameters
+        page = data.get("page", 1)  # Default to page 1 if not provided
+        page_size = data.get("page_size", 10)  # Default to 10 items per page if not provided
+
+        # Prepare the request with all filters
+        filters = {
+            "app_id": app_id,
+            "features": feature_list,
+            "topic": topic,
+            "emotion": emotion,
+            "polarity": polarity,
+            "type": review_type,
+        }
+
+        # Fetch reviews using the review_service
+        reviews_data = review_service.get_reviews_by_filters(
+            filters,
+            page=page,
+            page_size=page_size
+        )
+
         return make_response(jsonify(reviews_data), 200)
 
     except Exception as e:
