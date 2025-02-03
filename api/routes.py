@@ -379,11 +379,10 @@ def get_user_applications_names(user_id):
         }
         return make_response(jsonify(response_data), 200)
 
-@api_bp.route('/users/<string:user_id>/applications', methods=['POST'])
+@api_bp.route('/applications', methods=['POST'])
 @jwt_required(optional=True)
-def create_applications(user_id):
-    api_logger.info(f"[{datetime.now()}]: Create Applications for user {user_id} request")
-    validate_user(user_id)
+def create_applications():
+    api_logger.info(f"[{datetime.now()}]: Create Applications request")
     if 'Content-Type' in request.headers and 'application/json' in request.headers['Content-Type']:
         applications_list = request.get_json()
     elif 'applications_file' in request.files:
@@ -395,7 +394,7 @@ def create_applications(user_id):
     if len(applications_list) == 0:
         return make_response(jsonify(api_responses.responses['empty_applications_body']), 400)
 
-    applications = mobile_application_service.process_applications(user_id, applications_list)
+    applications = mobile_application_service.send_applications_to_kg(applications_list)
     return make_response(jsonify(applications), 201)
 
 @api_bp.route('/users/<string:user_id>/applications/<string:application_id>', methods=['PUT', 'POST'])
