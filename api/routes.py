@@ -295,17 +295,14 @@ def topUserFeaturesByAppNames(user_id):
     top_features = mobile_application_service.get_top_features(user_id, app_names)
     return make_response(jsonify(top_features), 200)
 
-@api_bp.route('/users/<string:user_id>/applications/<string:app_id>/statistics', methods=['GET'])
+@api_bp.route('/applications/<string:app_id>/statistics', methods=['GET'])
 @jwt_required(optional=True)
-def statistics(user_id, app_id):
-    api_logger.info(f"[{datetime.now()}]: Get User {user_id} statistics")
-    validate_user(user_id)
-    if not request.args or ('start_date' not in request.args and 'end_date' not in request.args):
-        return make_response(jsonify({'message': 'start_date or end_date parameter is missing'}), 400)
-
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    statistics = mobile_application_service.get_app_statistics(app_id, start_date, end_date)
+def statistics(app_id):
+    api_logger.info(f"[{datetime.now()}]: Get Application {app_id} statistics")
+    start_date = request.args.get('start_date', None)
+    end_date = request.args.get('end_date', None)
+    descriptor = request.args.get('descriptor', None)
+    statistics = mobile_application_service.get_app_statistics(app_id, descriptor, start_date, end_date)
     return make_response(jsonify(statistics), 200)
 
 #---------------------------------------------------------------------------
@@ -431,6 +428,13 @@ def get_application(user_id, application_id):
 def get_application_features(user_id, application_id):
     api_logger.info(f"[{datetime.now()}]: Get Application {application_id} data")
     validate_user(user_id)
+    features = mobile_application_service.get_application_features(application_id)
+    return make_response(features, 200)
+
+@api_bp.route('/applications/<string:application_id>/features', methods=['GET'])
+@jwt_required(optional=True)
+def get_application_features_without_user(application_id):
+    api_logger.info(f"[{datetime.now()}]: Get Application {application_id} features")
     features = mobile_application_service.get_application_features(application_id)
     return make_response(features, 200)
 
