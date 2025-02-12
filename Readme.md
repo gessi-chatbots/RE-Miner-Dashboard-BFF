@@ -1,4 +1,4 @@
-# 🚀 RE-Miner Dashboard BFF
+# RE-Miner Dashboard BFF
 
 The **RE-Miner Dashboard BFF** serves as backend and core processing unit for the **RE-Miner 2.0**.
 
